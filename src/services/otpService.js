@@ -1,6 +1,7 @@
 import { query } from '../config/db.js';
 import { config } from '../config/env.js';
-
+import { v4 as uuidv4 } from 'uuid';
+import moment from "moment-timezone";
 function generateOtp() {
   // 4-digit OTP
   return Math.floor(1000 + Math.random() * 9000).toString();
@@ -10,15 +11,26 @@ function generateOtp() {
 export async function createOtpForUser(user, explicitMobile) {
   const otpCode = generateOtp();
 const now = Date.now();
+const utcTime = now;
+// const istFormatted = moment(utcTime)
+//   .tz("Asia/Kolkata")
+//   .add(config.otp.ttlMinutes, "minutes")   // ← add TTL minutes here
+//   .format("DD/MM/YYYY HH:mm:ss");
 
-  const expiresAt = new Date(
-    now + config.otp.ttlMinutes * 60 * 1000
-  ).toISOString();
-  //  const expiresAt =  config.otp.ttlMinutes 
-//   const expiresAt = new Date(config.otp.ttlMinutes).toLocaleString('en-IN', {
-//   timeZone: 'Asia/Kolkata',
-// });
-  
+// console.log(istFormatted);
+// console.log(now);
+const requestId = uuidv4();
+  // const expiresAt = new Date(
+  //   now + config.otp.ttlMinutes * 60 * 1000
+  // ).toISOString();
+const expiresAt = moment(utcTime)
+  .tz("Asia/Kolkata")
+  .add(config.otp.ttlMinutes, "minutes")
+  .format("YYYY-MM-DD HH:mm:ss");
+// console.log(expiresAt);
+
+  // const ttlMinutes = Number(config.otp.ttlMinutes || 30);
+
 
   const mobile = explicitMobile || user.mobile_number;
   if (!mobile) throw new Error('No mobile number available for OTP');
@@ -28,19 +40,21 @@ const now = Date.now();
       (user_id, mobile_number, otp_code, purpose,
        expires_at, is_used, attempts, created_by, "requestId")
     values
-      ($1, $2, $3, 'login', $4, false, 0, 'System', $5)
+      ($1, $2, $3, 'login',      $4,
+       false, 0, 'System', $5)
     returning *;
   `;
+
 
   const { rows } = await query(sql, [
     user.user_id,
     mobile,
     otpCode,
     expiresAt,
-    'dummy-request-id', // placeholder for MSG91 reqId
+    requestId, // placeholder for MSG91 reqId
   ]);
 
-  return { otpCode, expiresAt, row: rows[0] };
+  return { otpCode,  expiresAt,  row: rows[0] };
 }
 
 // Verify OTP for user
@@ -59,16 +73,16 @@ export async function verifyUserOtp(userId, mobile, otp) {
   if (!rows.length) {
     return { valid: false, reason: 'otp_not_found' };
   }
-  console.log(rows);
+  // console.log(rows);
 
   const row = rows[0];
   const now = new Date();
   // const now = ""
-  console.log(now);
+  // console.log(now);
 
   // const expiresAt = new Date(row.expires_at);
   const expiresAt = row.expires_at;
-  console.log(expiresAt);
+  // console.log(expiresAt);
   
 
   if (row.is_used) {
