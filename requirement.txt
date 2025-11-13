@@ -1,0 +1,4 @@
+nodejs
+postgresql v16
+reactjs
+school project
