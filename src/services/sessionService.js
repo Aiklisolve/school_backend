@@ -1,13 +1,21 @@
 import { query } from '../config/db.js';
 import { config } from '../config/env.js';
-
+import moment from "moment-timezone";
 // Create session row in user_session_details
 export async function createSessionForUser(userId, token, ip, userAgent) {
   const sessionId = cryptoRandomUUID();
   const now = Date.now();
-  const expiresAt = new Date(
-    now + config.session.ttlHours * 60 * 60 * 1000
-  ).toISOString();
+const utcTime = now;
+
+  // const expiresAt = new Date(
+  //   now + config.session.ttlHours * 60 * 60 * 1000
+  // ).toISOString();
+
+const expiresAt = moment(utcTime)
+  .tz("Asia/Kolkata")
+  .add(config.session.ttlHours, "hours")
+  .format("YYYY-MM-DD HH:mm:ss");
+
   const lastActivity = new Date().toISOString();
 
   const sql = `
