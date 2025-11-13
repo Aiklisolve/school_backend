@@ -1,0 +1,95 @@
+# ==============================
+# Node.js
+# ==============================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dist/
+build/
+.cache/
+.tmp/
+
+# ==============================
+# Environment Files
+# ==============================
+.env
+.env.local
+.env.*.local
+
+# dotenvx sync backup
+dotenv.db.bak
+.env.keys
+
+# ==============================
+# Logs
+# ==============================
+logs/
+*.log
+*.log.*
+logfile
+debug.log
+
+# ==============================
+# OS Files (Windows + Mac)
+# ==============================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ==============================
+# Editor / IDE Settings
+# ==============================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ==============================
+# Temporary files
+# ==============================
+*.tmp
+*.temp
+*.bak
+*.old
+*.orig
+
+# ==============================
+# Uploads / Temp Storage
+# ==============================
+uploads/
+public/uploads/
+tmp/
+
+# ==============================
+# Coverage / Testing
+# ==============================
+coverage/
+.nyc_output/
+
+# ==============================
+# Private keys / credentials
+# ==============================
+*.pem
+*.key
+*.crt
+key.txt
+credentials.json
+
+# ==============================
+# Lock Files (optional)
+# ==============================
+package-lock.json
+yarn.lock
+
+# ==============================
+# Node REPL history
+# ==============================
+.node_repl_history
+
+# ==============================
+# TypeScript (if later added)
+# ==============================
+*.tsbuildinfo
