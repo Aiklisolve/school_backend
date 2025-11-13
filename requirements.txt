@@ -1,0 +1,11 @@
+school_backend@1.0.0 D:\Aiklisolve Projects\School_Project\Back_End\school_backend
+├── chalk@5.6.2
+├── cors@2.8.5
+├── dotenv@17.2.3
+├── express@5.1.0
+├── jsonwebtoken@9.0.2
+├── morgan@1.10.1
+├── nodemon@3.1.11
+├── pg@8.16.3
+└── uuid@13.0.0
+
