@@ -37,7 +37,7 @@ const expiresAt = moment(utcTime)
 
   const sql = `
     insert into user_otp
-      (user_id, mobile_number, otp_code, purpose,
+      (user_id, phone, otp_code, purpose,
        expires_at, is_used, attempts, created_by, "requestId")
     values
       ($1, $2, $3, 'login',      $4,

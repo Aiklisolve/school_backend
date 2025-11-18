@@ -27,12 +27,15 @@ export async function loginController(req, res) {
       }
 
       const user = await findUserByEmailAndRole(email, role);
-      if (!user || user.status !== 'active') {
+      console.log( user);
+      
+      if ( user.is_active !== 'false') {
         return res.status(401).json({
           status: 401,
           message: 'invalid user credentials',
         });
       }
+      console.log( user.password_hash);
 
       // TODO: if using bcrypt, compare hash here
       if (user.password_hash !== password) {
@@ -70,7 +73,7 @@ export async function loginController(req, res) {
       }
 
       const user = await findUserByMobileAndRole(mobile, role);
-      if (!user || user.status !== 'active') {
+      if (!user || user.is_active !== 'false') {
         return res.status(401).json({
           status: 401,
           message: 'invalid user credentials',
@@ -105,7 +108,7 @@ export async function loginController(req, res) {
         user = await findUserByMobileAndRole(mobile, role);
       }
 
-      if (!user || user.status !== 'active') {
+      if (!user || user.is_active !== 'false') {
         return res.status(401).json({
           status: 401,
           message: 'invalid user credentials',
