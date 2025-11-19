@@ -19,14 +19,14 @@ const expiresAt = moment(utcTime)
   const lastActivity = new Date().toISOString();
 
   const sql = `
-    insert into user_session_details
-      (session_id, user_id, jwt_token, remember_me_flag,
-       ip_address, user_agent, expires_at, last_activity,
-       is_active, created_by, updated_by, updated_time)
+    insert into user_sessions
+      (session_id, user_id, jwt_token, device_type,
+       ip_address, user_agent, expires_at, last_activity_at,
+        created_at)
     values
-      ($1, $2, $3, false,
+      ($1, $2, $3, 'system',
        $4, $5, $6, $7,
-       true, 'system', 'system', $6)
+       $6)
     returning *;
   `;
 

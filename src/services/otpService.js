@@ -7,101 +7,86 @@ function generateOtp() {
   return Math.floor(1000 + Math.random() * 9000).toString();
 }
 
-// Create OTP for user
+
 export async function createOtpForUser(user, explicitMobile) {
   const otpCode = generateOtp();
-const now = Date.now();
-const utcTime = now;
-// const istFormatted = moment(utcTime)
-//   .tz("Asia/Kolkata")
-//   .add(config.otp.ttlMinutes, "minutes")   // ← add TTL minutes here
-//   .format("DD/MM/YYYY HH:mm:ss");
+  const ttl = Number(config.otp.ttlMinutes || 30);
 
-// console.log(istFormatted);
-// console.log(now);
-const requestId = uuidv4();
-  // const expiresAt = new Date(
-  //   now + config.otp.ttlMinutes * 60 * 1000
-  // ).toISOString();
-const expiresAt = moment(utcTime)
-  .tz("Asia/Kolkata")
-  .add(config.otp.ttlMinutes, "minutes")
-  .format("YYYY-MM-DD HH:mm:ss");
-// console.log(expiresAt);
+const nowIST = moment().tz("Asia/Kolkata");
 
-  // const ttlMinutes = Number(config.otp.ttlMinutes || 30);
+// EXPIRY in IST (+TTL minutes)
+const expiresIST = nowIST.clone().add(ttl, "minutes");
+
+// Convert IST → UTC DATE OBJECT for Postgres
+const expiresUTC = expiresIST.tz("UTC").toDate();
+
+// For logs only (optional)
+// console.log("NOW IST       =", nowIST.format("DD/MM/YYYY HH:mm:ss"));
+// console.log("EXPIRES IST   =", expiresIST.format("DD/MM/YYYY HH:mm:ss"));
+// console.log("EXPIRES UTC   =", expiresUTC.toISOString());
 
 
-  const mobile = explicitMobile || user.mobile_number;
-  if (!mobile) throw new Error('No mobile number available for OTP');
+  const mobile = explicitMobile || user.phone;
 
   const sql = `
-    insert into user_otp
-      (user_id, phone, otp_code, purpose,
-       expires_at, is_used, attempts, created_by, "requestId")
+    insert into users_otps
+      (user_id, phone, otp_code, otp_type,
+       expires_at, is_used, attempts_count, email, ip_address)
     values
-      ($1, $2, $3, 'login',      $4,
-       false, 0, 'System', $5)
+      ($1, $2, $3, 'LOGIN', $4,
+       false, 0, $5, $6)
     returning *;
   `;
-
 
   const { rows } = await query(sql, [
     user.user_id,
     mobile,
     otpCode,
-    expiresAt,
-    requestId, // placeholder for MSG91 reqId
+    expiresUTC,   // store UTC timestamp
+    user.email,
+    "127.0.0.1"
   ]);
 
-  return { otpCode,  expiresAt,  row: rows[0] };
+  return {
+    otpCode,
+    expiresIST: expiresIST.format("DD/MM/YYYY HH:mm:ss"),
+    expiresUTC,
+    row: rows[0]
+  };
 }
+
+
 
 // Verify OTP for user
 export async function verifyUserOtp(userId, mobile, otp) {
-  const selectSql = `
+  const sql = `
     select otp_id, otp_code, expires_at, is_used
-    from user_otp
-    where user_id = $1
-      and mobile_number = $2
-      and purpose = 'login'
-    order by created_time desc
-    limit 1;
+    from users_otps
+    where user_id=$1 and phone=$2 and otp_type='LOGIN'
+    order by created_at desc limit 1;
   `;
-  const { rows } = await query(selectSql, [userId, mobile]);
 
-  if (!rows.length) {
-    return { valid: false, reason: 'otp_not_found' };
-  }
-  // console.log(rows);
+  const { rows } = await query(sql, [userId, mobile]);
+  if (!rows.length) return { valid: false, reason: "otp_not_found" };
 
   const row = rows[0];
-  const now = new Date();
-  // const now = ""
-  // console.log(now);
 
-  // const expiresAt = new Date(row.expires_at);
-  const expiresAt = row.expires_at;
-  // console.log(expiresAt);
-  
+  const nowIST = moment().tz("Asia/Kolkata");
+  const expiresIST = moment(row.expires_at).tz("Asia/Kolkata");
 
-  if (row.is_used) {
-    return { valid: false, reason: 'otp_already_used' };
-  }
-  if (now > expiresAt) {
-    return { valid: false, reason: 'otp_expired' };
-  }
-  if (row.otp_code !== otp) {
-    return { valid: false, reason: 'otp_mismatch' };
-  }
+  // console.log("NOW IST       =", nowIST.format("DD/MM/YYYY HH:mm:ss"));
+  // console.log("EXPIRES IST   =", expiresIST.format("DD/MM/YYYY HH:mm:ss"));
+// console.log('otp_code',row.otp_code);
+// console.log('otp',otp);
 
-  const updateSql = `
-    update user_otp
-    set is_used = true,
-        used_at = $2
-    where otp_id = $1;
-  `;
-  await query(updateSql, [row.otp_id, now.toISOString()]);
-
-  return { valid: true, otpRow: row };
+  if (row.is_used) return { valid: false, reason: "otp_used" };
+  if (nowIST.isAfter(expiresIST)) return { valid: false, reason: "otp_expired" };
+if (String(row.otp_code).trim() !== String(otp).trim()) {
+  return { valid: false, reason: "otp_mismatch" };
 }
+
+  return { valid: true , otpRow: row };
+}
+
+
+

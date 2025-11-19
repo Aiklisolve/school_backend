@@ -27,15 +27,17 @@ export async function loginController(req, res) {
       }
 
       const user = await findUserByEmailAndRole(email, role);
-      console.log( user);
-      
-      if ( user.is_active !== 'false') {
+      // console.log(user);
+      // console.log(user.is_active);
+
+
+      if (!user || String(user.is_active).trim() !== 'true') {
         return res.status(401).json({
           status: 401,
           message: 'invalid user credentials',
         });
       }
-      console.log( user.password_hash);
+      // console.log(user.password_hash);
 
       // TODO: if using bcrypt, compare hash here
       if (user.password_hash !== password) {
@@ -107,15 +109,17 @@ export async function loginController(req, res) {
       } else if (mobile) {
         user = await findUserByMobileAndRole(mobile, role);
       }
+      // console.log('user', user);
+      // console.log('user is_active', user.is_active);
 
-      if (!user || user.is_active !== 'false') {
+      if (!user || String(user.is_active).trim() !== 'true') {
         return res.status(401).json({
           status: 401,
           message: 'invalid user credentials',
         });
       }
 
-      const mobileToUse = mobile || user.mobile_number;
+      const mobileToUse = mobile || user.phone;
       if (!mobileToUse) {
         return res.status(400).json({
           status: 400,
@@ -138,9 +142,25 @@ export async function loginController(req, res) {
         role: user.role,
       });
 
-      const ip =
-        req.headers['x-forwarded-for']?.toString().split(',')[0].trim() ||
-        req.socket.remoteAddress;
+      function normalizeIp(ip) {
+        if (!ip) return null;
+
+        // ::1  →  127.0.0.1
+        if (ip === "::1") return "127.0.0.1";
+
+        // ::ffff:192.168.1.10 → 192.168.1.10
+        if (ip.startsWith("::ffff:")) return ip.replace("::ffff:", "");
+
+        return ip;
+      }
+
+      const forwarded = req.headers["x-forwarded-for"];
+      const rawIp = forwarded ? forwarded.split(",")[0].trim() : req.socket.remoteAddress;
+      const ip = normalizeIp(rawIp);
+
+      // console.log("Client IP:", ip);
+
+
       const userAgent = req.headers['user-agent'] || null;
 
       const { sessionId, expiresAt } = await createSessionForUser(
