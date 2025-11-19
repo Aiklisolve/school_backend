@@ -75,7 +75,7 @@ export async function loginController(req, res) {
       }
 
       const user = await findUserByMobileAndRole(mobile, role);
-      if (!user || user.is_active !== 'false') {
+      if (!user || String(user.is_active).trim() !== 'true') {
         return res.status(401).json({
           status: 401,
           message: 'invalid user credentials',

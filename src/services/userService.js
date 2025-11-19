@@ -26,5 +26,7 @@ export async function findUserByMobileAndRole(mobile, role) {
     limit 1;
   `;
   const { rows } = await query(sql, [mobile, role]);
+  // console.log(rows);
+  
   return rows[0] || null;
 }
