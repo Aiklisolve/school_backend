@@ -37,12 +37,25 @@ export async function registerParent(req, res) {
     }
 
     // 3. Phone validation (basic, optional)
-    if (!validator.isMobilePhone(phone, 'any')) {
+    // if (!validator.isMobilePhone(phone, 'any')) {
+    //   return res.status(400).json({
+    //     status: "error",
+    //     message: "Invalid phone number"
+    //   });
+    // }
+
+    // Accepts: +91XXXXXXXXXX, +91 XXXXX XXXXX, 9876543210
+    const phoneClean = phone.replace(/[\s-]/g, "");
+
+    const phoneRegex = /^(\+?\d{1,3})?\d{10}$/;
+
+    if (!phoneRegex.test(phoneClean)) {
       return res.status(400).json({
         status: "error",
         message: "Invalid phone number"
       });
     }
+
 
     // 4. Insert into DB
     const insertSql = `

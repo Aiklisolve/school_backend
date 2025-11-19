@@ -29,6 +29,10 @@ export async function registerStudent(req, res) {
       student_photo_url
     } = req.body;
 
+    const isYmdDate = (value) =>
+      validator.isDate(value, { format: "YYYY-MM-DD", strictMode: true });
+
+
     // 1. Required field validation
     if (
       !school_id ||
@@ -42,6 +46,22 @@ export async function registerStudent(req, res) {
         status: "error",
         message:
           "school_id, admission_number, full_name, date_of_birth, admission_date and admission_class are required",
+      });
+    }
+
+    // After required field checks
+
+    if (!isYmdDate(date_of_birth)) {
+      return res.status(400).json({
+        status: "error",
+        message: "date_of_birth must be in YYYY-MM-DD format",
+      });
+    }
+
+    if (!isYmdDate(admission_date)) {
+      return res.status(400).json({
+        status: "error",
+        message: "admission_date must be in YYYY-MM-DD format",
       });
     }
 
@@ -150,6 +170,24 @@ export async function registerStudent(req, res) {
 
     const { rows } = await query(insertSql, params);
     const student = rows[0];
+
+    // helper to ensure we always return "YYYY-MM-DD"
+    const toYMD = (v) => {
+      if (!v) return null;
+      if (typeof v === "string") {
+        // handles "YYYY-MM-DD" or "YYYY-MM-DDTHH:MM:SSZ"
+        return v.slice(0, 10);
+      }
+      if (v instanceof Date) {
+        return v.toISOString().slice(0, 10);
+      }
+      return String(v).slice(0, 10);
+    };
+
+    // override the fields in the response to be clean dates
+    student.date_of_birth = toYMD(student.date_of_birth || date_of_birth);
+    student.admission_date = toYMD(student.admission_date || admission_date);
+    student.created_at = toYMD(student.created_at);
 
     return res.status(201).json({
       status: "success",

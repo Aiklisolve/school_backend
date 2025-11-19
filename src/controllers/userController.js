@@ -30,13 +30,24 @@ export async function registerUser(req, res) {
       pincode,
     } = req.body;
 
+    const normalizedRole = role ? role.toString().trim().toUpperCase() : null;
+    const normalizedGender = gender ? gender.toString().trim().toUpperCase() : null;
+
+
     // 1. Basic required-field validation
-    if (!school_id || !username || !email || !phone || !password || !full_name || !role) {
+    // if (!school_id || !username || !email || !phone || !password || !full_name || !role) {
+    //   return res.status(400).json({
+    //     status: 'error',
+    //     message: 'school_id, username, email, phone, password, full_name, and role are required',
+    //   });
+    // }
+    if (!school_id || !username || !email || !phone || !password || !full_name || !normalizedRole) {
       return res.status(400).json({
         status: 'error',
         message: 'school_id, username, email, phone, password, full_name, and role are required',
       });
     }
+
 
     // 2. Email validation
     if (!validator.isEmail(email)) {
@@ -55,12 +66,19 @@ export async function registerUser(req, res) {
     }
 
     // 4. Gender validation (optional)
-    if (gender && !ALLOWED_GENDER.includes(gender)) {
+    // if (gender && !ALLOWED_GENDER.includes(gender)) {
+    //   return res.status(400).json({
+    //     status: 'error',
+    //     message: `Invalid gender. Allowed values: ${ALLOWED_GENDER.join(', ')}`,
+    //   });
+    // }
+    if (normalizedGender && !ALLOWED_GENDER.includes(normalizedGender)) {
       return res.status(400).json({
         status: 'error',
         message: `Invalid gender. Allowed values: ${ALLOWED_GENDER.join(', ')}`,
       });
     }
+
 
     // 5. Hash password with bcrypt (10 rounds)
     const password_hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
@@ -115,6 +133,28 @@ export async function registerUser(req, res) {
         updated_at;
     `;
 
+    // const params = [
+    //   school_id,
+    //   branch_id || null,
+    //   username,
+    //   email,
+    //   phone,
+    //   password_hash,
+    //   full_name,
+    //   date_of_birth || null,   // expected as 'YYYY-MM-DD' from frontend
+    //   gender || null,
+    //   role,
+    //   employee_id || null,
+    //   designation || null,
+    //   alternate_phone || null,
+    //   emergency_contact || null,
+    //   address_line1 || null,
+    //   city || null,
+    //   state || null,
+    //   pincode || null,
+    // ];
+
+    //changes for normalized role and gender
     const params = [
       school_id,
       branch_id || null,
@@ -123,9 +163,9 @@ export async function registerUser(req, res) {
       phone,
       password_hash,
       full_name,
-      date_of_birth || null,   // expected as 'YYYY-MM-DD' from frontend
-      gender || null,
-      role,
+      date_of_birth || null,   // still 'YYYY-MM-DD'
+      normalizedGender || null,
+      normalizedRole,
       employee_id || null,
       designation || null,
       alternate_phone || null,
@@ -136,8 +176,17 @@ export async function registerUser(req, res) {
       pincode || null,
     ];
 
-    const { rows } = await query(insertSql, params);
+
+    // const { rows } = await query(insertSql, params);
+    // const newUser = rows[0];
+
+        const { rows } = await query(insertSql, params);
     const newUser = rows[0];
+
+    // Make sure role/gender in response are consistent
+    newUser.role = normalizedRole;
+    if (normalizedGender) newUser.gender = normalizedGender;
+
 
     return res.status(201).json({
       status: 'success',
