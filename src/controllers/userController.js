@@ -4,7 +4,7 @@ import validator from 'validator';
 import { query } from '../config/db.js';
 
 const BCRYPT_ROUNDS = 10;
-const ALLOWED_ROLES = ['PRINCIPAL', 'TEACHER', 'PARENT', 'ADMIN'];
+const ALLOWED_ROLES = ['PRINCIPAL', 'TEACHER', 'PARENT', 'ADMIN','STUDENT'];
 const ALLOWED_GENDER = ['M', 'F', 'O'];
 
 export async function registerUser(req, res) {

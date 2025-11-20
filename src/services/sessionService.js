@@ -53,3 +53,64 @@ function cryptoRandomUUID() {
     return uuidv4();
   }
 }
+
+/**
+ * Validate session by session_id
+ */
+export async function validateSession(sessionId) {
+  const sql = `
+    SELECT
+      session_id,
+      user_id,
+      jwt_token,
+      expires_at,
+      is_active
+    FROM public.user_sessions
+    WHERE session_id = $1;
+  `;
+
+  const { rows } = await query(sql, [sessionId]);
+  if (!rows.length) {
+    return { valid: false, reason: "not_found" };
+  }
+
+  const session = rows[0];
+  const now = new Date();
+
+  if (!session.is_active) {
+    return { valid: false, reason: "inactive" };
+  }
+
+  if (session.expires_at <= now) {
+    return { valid: false, reason: "expired" };
+  }
+
+  return { valid: true, session };
+}
+
+/**
+ * Destroy session by session_id (logout)
+ */
+export async function destroySession(sessionId) {
+  const sql = `
+    UPDATE public.user_sessions
+    SET is_active = false,
+        last_activity = NOW()
+    WHERE session_id = $1;
+  `;
+
+  await query(sql, [sessionId]);
+}
+
+/**
+ * Optionally: destroy all sessions for a user (force logout everywhere)
+ */
+export async function destroyAllSessionsForUser(userId) {
+  const sql = `
+    UPDATE public.user_sessions
+    SET is_active = false,
+        last_activity = NOW()
+    WHERE user_id = $1;
+  `;
+  await query(sql, [userId]);
+}

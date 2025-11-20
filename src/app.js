@@ -6,7 +6,7 @@ import logger from './middleware/logger.js';
 import parentRoutes from "./routes/parentRoutes.js";
 import schoolRoutes from "./routes/schoolRoutes.js";
 import studentRoutes from "./routes/studentRoutes.js";
-
+import sessionRoutes from "./routes/sessionRoutes.js";
 const app = express();
 
 app.use(cors());
@@ -26,7 +26,7 @@ app.use('/api/users', userRoutes);
 app.use("/api/parents", parentRoutes);
 app.use("/api/schools", schoolRoutes);
 app.use("/api/students", studentRoutes);
-
+app.use("/api/sessions", sessionRoutes);
 
 
 export default app;
