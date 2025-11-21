@@ -10,6 +10,9 @@ import sessionRoutes from "./routes/sessionRoutes.js";
 import branchRoutes from "./routes/branchRoutes.js";
 import ptmRoutes from "./routes/ptmRoutes.js";
 import masterDataRoutes from "./routes/masterDataRoutes.js";
+import parentStudentRelationshipRoutes from "./routes/parentStudentRelationshipRoutes.js";
+
+
 
 const app = express();
 
@@ -34,5 +37,8 @@ app.use("/api/sessions", sessionRoutes);
 app.use("/api/branches", branchRoutes);
 app.use("/api/ptm", ptmRoutes);
 app.use("/api/master", masterDataRoutes);
+app.use("/api/relationships", parentStudentRelationshipRoutes);
+
+
 
 export default app;

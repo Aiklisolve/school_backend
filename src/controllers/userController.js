@@ -511,3 +511,69 @@ export async function changePassword(req, res) {
 }
 
 
+export async function getUserBySchoolId(req, res) {
+  try {
+    const { school_id } = req.params;          // from /school/:school_id
+    // const schoolId = Number(school_id);     // optional: if you want it as number
+
+    const sql = `
+      SELECT 
+        u.user_id,
+        u.school_id,
+        u.branch_id,
+        u.username,
+        u.email,
+        u.phone,
+        u.full_name,
+        u.role,
+        u.gender,
+        u.is_active,
+        u.created_at,
+
+        -- school related
+        s.school_code,
+        s.school_name,
+        s.city      AS school_city,
+        s.state     AS school_state,
+        s.pincode   AS school_pincode,
+        s.board_type,
+
+        -- branch related
+        b.branch_code,
+        b.branch_name,
+        b.city      AS branch_city,
+        b.state     AS branch_state,
+        b.pincode   AS branch_pincode,
+        b.is_main_branch
+
+      FROM public.users u
+      JOIN public.schools s
+        ON u.school_id = s.school_id
+      LEFT JOIN public.branches b
+        ON u.branch_id = b.branch_id
+       AND b.school_id = u.school_id
+      WHERE u.school_id = $1;
+    `;
+
+    // ❌ was [id] – id is not defined
+    const { rows } = await query(sql, [school_id]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No users found for this school",
+      });
+    }
+
+    return res.status(200).json({
+      status: "success",
+      users: rows,          // ✅ return list, not only rows[0]
+    });
+  } catch (err) {
+    console.error("Error fetching user:", err);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error",
+    });
+  }
+}

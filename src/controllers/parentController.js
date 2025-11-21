@@ -136,3 +136,72 @@ export async function registerParent(req, res) {
     });
   }
 }
+
+// src/controllers/parentController.js
+
+export async function getParentsBySchoolId(req, res) {
+  try {
+    const { school_id } = req.params;
+
+    if (!school_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "school_id is required"
+      });
+    }
+
+    const sql = `
+      SELECT 
+        p.parent_id,
+        p.school_id,
+        p.full_name,
+        p.phone,
+        p.whatsapp_number,
+        p.email,
+        p.occupation,
+        p.annual_income_range,
+        p.education_level,
+        p.address_line1,
+        p.address_line2,
+        p.city,
+        p.state,
+        p.pincode,
+        p.is_active,
+        p.created_at,
+
+        -- school details
+        s.school_code,
+        s.school_name,
+        s.city  AS school_city,
+        s.state AS school_state,
+        s.pincode AS school_pincode
+
+      FROM public.parents p
+      JOIN public.schools s
+        ON p.school_id = s.school_id
+      WHERE p.school_id = $1
+      ORDER BY p.parent_id DESC;
+    `;
+
+    const { rows } = await query(sql, [school_id]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No parents found for this school"
+      });
+    }
+
+    return res.status(200).json({
+      status: "success",
+      data: rows
+    });
+
+  } catch (err) {
+    console.error("Get parents error:", err);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error"
+    });
+  }
+}

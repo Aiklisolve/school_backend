@@ -225,3 +225,92 @@ export async function registerStudent(req, res) {
     });
   }
 }
+
+// src/controllers/studentController.js
+
+export async function getStudentsBySchoolId(req, res) {
+  try {
+    const { school_id } = req.params;
+
+    if (!school_id) {
+      return res.status(400).json({
+        status: "error",
+        message: "school_id is required",
+      });
+    }
+
+    const sql = `
+      SELECT 
+        s.student_id,
+        s.school_id,
+        s.branch_id,
+        s.admission_number,
+        s.roll_number,
+        s.full_name,
+        s.date_of_birth,
+        s.gender,
+        s.blood_group,
+        s.admission_date,
+        s.admission_class,
+        s.current_status,
+        s.is_active,
+        s.created_at,
+
+        -- school details
+        sch.school_name,
+        sch.school_code,
+        sch.city        AS school_city,
+        sch.state       AS school_state,
+        sch.pincode     AS school_pincode,
+        sch.board_type,
+
+        -- branch details
+        b.branch_name,
+        b.branch_code,
+        b.city          AS branch_city,
+        b.state         AS branch_state,
+        b.pincode       AS branch_pincode,
+        b.is_main_branch
+
+      FROM public.students s
+      JOIN public.schools sch
+        ON s.school_id = sch.school_id
+      LEFT JOIN public.branches b
+        ON s.branch_id = b.branch_id
+       AND b.school_id = s.school_id
+      WHERE s.school_id = $1
+      ORDER BY s.student_id DESC;
+    `;
+
+    const { rows } = await query(sql, [school_id]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "No students found for this school",
+      });
+    }
+
+    // clean date formatting
+    const toYMD = (v) =>
+      v ? v.toISOString ? v.toISOString().slice(0, 10) : String(v).slice(0, 10) : null;
+
+    rows.forEach((student) => {
+      student.date_of_birth = toYMD(student.date_of_birth);
+      student.admission_date = toYMD(student.admission_date);
+      student.created_at = toYMD(student.created_at);
+    });
+
+    return res.status(200).json({
+      status: "success",
+      data: rows,
+    });
+
+  } catch (err) {
+    console.error("Get student list error:", err);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error",
+    });
+  }
+}

@@ -1,6 +1,6 @@
 // src/routes/userRoutes.js
 import { Router } from 'express';
-import { activateUser, changePassword, deactivateUser, getAllUsers, getUserById, registerUser, updateUser, verifyEmail, verifyPhone } from '../controllers/userController.js';
+import { activateUser, changePassword, deactivateUser, getAllUsers, getUserById, getUserBySchoolId, registerUser, updateUser, verifyEmail, verifyPhone } from '../controllers/userController.js';
 
 const router = Router();
 
@@ -9,6 +9,9 @@ router.post('/register', registerUser);
 
 // GET /api/users
 router.get('/getusers', getAllUsers);
+
+// GET /api/users/school/:school_id
+router.get('/school/:school_id', getUserBySchoolId);
 
 // GET /api/users/:id
 router.get('/:id', getUserById);
