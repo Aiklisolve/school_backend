@@ -2,9 +2,9 @@
 import bcrypt from 'bcrypt';           // or 'bcryptjs' if you used that
 import validator from 'validator';
 import { query } from '../config/db.js';
-
+import crypto from 'crypto';
 const BCRYPT_ROUNDS = 10;
-const ALLOWED_ROLES = ['PRINCIPAL', 'TEACHER', 'PARENT', 'ADMIN','STUDENT'];
+const ALLOWED_ROLES = ['PRINCIPAL', 'TEACHER', 'PARENT', 'ADMIN', 'STUDENT'];
 const ALLOWED_GENDER = ['M', 'F', 'O'];
 
 export async function registerUser(req, res) {
@@ -81,7 +81,14 @@ export async function registerUser(req, res) {
 
 
     // 5. Hash password with bcrypt (10 rounds)
-    const password_hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+    // const password_hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+
+    function hashPassword(password) {
+      return crypto.createHash('sha256').update(password).digest('hex'); // 64 chars
+    }
+    const password_hash = hashPassword(password);
+    // console.log('hashed password:', password_hash); // will be 64-char hex
+
 
     // 6. Insert user into DB
     const insertSql = `
@@ -180,7 +187,7 @@ export async function registerUser(req, res) {
     // const { rows } = await query(insertSql, params);
     // const newUser = rows[0];
 
-        const { rows } = await query(insertSql, params);
+    const { rows } = await query(insertSql, params);
     const newUser = rows[0];
 
     // Make sure role/gender in response are consistent
