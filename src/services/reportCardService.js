@@ -239,7 +239,7 @@ class ReportCardService {
           await client.query(subjectQuery, [
             reportId, subject.subject, subject.internal_marks,
             subject.external_marks, subject.marks, subject.max_marks,
-            percentage, grade, subject.teacher_remarks || null,
+            percentage, grade, subject.subject_teacher || null,
             subject.teacher_remarks || null,
           ]);
 
