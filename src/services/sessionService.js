@@ -22,11 +22,11 @@ const expiresAt = moment(utcTime)
     insert into user_sessions
       (session_id, user_id, jwt_token, device_type,
        ip_address, user_agent, expires_at, last_activity_at,
-        created_at)
+        created_at,is_active)
     values
       ($1, $2, $3, 'system',
        $4, $5, $6, $7,
-       $6)
+       $6,true)
     returning *;
   `;
 
@@ -95,7 +95,7 @@ export async function destroySession(sessionId) {
   const sql = `
     UPDATE public.user_sessions
     SET is_active = false,
-        last_activity = NOW()
+        last_activity_at = NOW()
     WHERE session_id = $1;
   `;
 
