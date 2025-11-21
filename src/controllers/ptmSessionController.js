@@ -102,3 +102,63 @@ export async function listPtmSessionsController(req, res) {
     });
   }
 }
+
+import {
+  listSessionsForTeacher,
+  listSessionsForParent,
+  listSessionsForStudent,
+} from "../services/ptmSessionService.js";
+
+export async function getSessionsByTeacherController(req, res) {
+  try {
+    const { teacherId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+
+    const sessions = await listSessionsForTeacher(teacherId, page, limit);
+
+    return res.status(200).json({
+      status: "success",
+      count: sessions.length,
+      data: sessions,
+    });
+  } catch (err) {
+    console.error("Teacher sessions error:", err);
+    res.status(500).json({ status: "error", message: "Internal server error" });
+  }
+}
+
+export async function getSessionsByParentController(req, res) {
+  try {
+    const { parentId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+
+    const sessions = await listSessionsForParent(parentId, page, limit);
+
+    return res.status(200).json({
+      status: "success",
+      count: sessions.length,
+      data: sessions,
+    });
+  } catch (err) {
+    console.error("Parent sessions error:", err);
+    res.status(500).json({ status: "error", message: "Internal server error" });
+  }
+}
+
+export async function getSessionsByStudentController(req, res) {
+  try {
+    const { studentId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+
+    const sessions = await listSessionsForStudent(studentId, page, limit);
+
+    return res.status(200).json({
+      status: "success",
+      count: sessions.length,
+      data: sessions,
+    });
+  } catch (err) {
+    console.error("Student sessions error:", err);
+    res.status(500).json({ status: "error", message: "Internal server error" });
+  }
+}

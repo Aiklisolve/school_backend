@@ -113,3 +113,81 @@ export async function listPtmBookingsController(req, res) {
     });
   }
 }
+
+// GET - Bookings by Teacher
+export async function getBookingsByTeacherController(req, res) {
+  try {
+    const { teacherId } = req.params;
+    const { page, limit } = req.query;
+
+    if (!teacherId) {
+      return res.status(400).json({ status: "error", message: "teacherId is required" });
+    }
+
+    const result = await listPtmBookings({
+      teacherId,
+      page,
+      limit,
+    });
+
+    return res.status(200).json({
+      status: "success",
+      ...result,
+    });
+  } catch (err) {
+    console.error("Teacher bookings error:", err);
+    return res.status(500).json({ status: "error", message: "Internal server error" });
+  }
+}
+
+// GET - Bookings by Parent
+export async function getBookingsByParentController(req, res) {
+  try {
+    const { parentId } = req.params;
+    const { page, limit } = req.query;
+
+    if (!parentId) {
+      return res.status(400).json({ status: "error", message: "parentId is required" });
+    }
+
+    const result = await listPtmBookings({
+      parentId,
+      page,
+      limit,
+    });
+
+    return res.status(200).json({
+      status: "success",
+      ...result,
+    });
+  } catch (err) {
+    console.error("Parent bookings error:", err);
+    return res.status(500).json({ status: "error", message: "Internal server error" });
+  }
+}
+
+// GET - Bookings by Student
+export async function getBookingsByStudentController(req, res) {
+  try {
+    const { studentId } = req.params;
+    const { page, limit } = req.query;
+
+    if (!studentId) {
+      return res.status(400).json({ status: "error", message: "studentId is required" });
+    }
+
+    const result = await listPtmBookings({
+      studentId,
+      page,
+      limit,
+    });
+
+    return res.status(200).json({
+      status: "success",
+      ...result,
+    });
+  } catch (err) {
+    console.error("Student bookings error:", err);
+    return res.status(500).json({ status: "error", message: "Internal server error" });
+  }
+}

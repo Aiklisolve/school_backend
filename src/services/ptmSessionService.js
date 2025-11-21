@@ -185,3 +185,81 @@ export async function listPtmSessions({
     sessions: rows,
   };
 }
+
+// Sessions linked to Teacher via bookings
+export async function listSessionsForTeacher(teacherId, page = 1, limit = 10) {
+  const sql = `
+    SELECT DISTINCT
+      s.session_id,
+      s.session_name,
+      s.session_date,
+      s.start_time,
+      s.end_time,
+      sc.school_name,
+      c.class_name,
+      ay.year_name
+    FROM public.ptm_sessions s
+    JOIN public.ptm_bookings b ON b.ptm_session_id = s.session_id
+    JOIN public.schools sc ON sc.school_id = s.school_id
+    LEFT JOIN public.classes c ON c.class_id = s.class_id
+    JOIN public.academic_years ay ON ay.year_id = s.year_id
+    WHERE b.teacher_id = $1
+    ORDER BY s.session_date DESC, s.start_time ASC
+    LIMIT $2 OFFSET $3;
+  `;
+  const offset = (page - 1) * limit;
+  const { rows } = await query(sql, [teacherId, limit, offset]);
+  return rows;
+}
+
+// Sessions linked to Parent
+export async function listSessionsForParent(parentId, page = 1, limit = 10) {
+  const sql = `
+    SELECT DISTINCT
+      s.session_id,
+      s.session_name,
+      s.session_date,
+      s.start_time,
+      s.end_time,
+      sc.school_name,
+      c.class_name,
+      ay.year_name
+    FROM public.ptm_sessions s
+    JOIN public.ptm_bookings b ON b.ptm_session_id = s.session_id
+    JOIN public.schools sc ON sc.school_id = s.school_id
+    LEFT JOIN public.classes c ON c.class_id = s.class_id
+    JOIN public.academic_years ay ON ay.year_id = s.year_id
+    WHERE b.parent_id = $1
+    ORDER BY s.session_date DESC
+    LIMIT $2 OFFSET $3;
+  `;
+  const offset = (page - 1) * limit;
+  const { rows } = await query(sql, [parentId, limit, offset]);
+  return rows;
+}
+
+// Sessions linked to Student
+export async function listSessionsForStudent(studentId, page = 1, limit = 10) {
+  const sql = `
+    SELECT DISTINCT
+      s.session_id,
+      s.session_name,
+      s.session_date,
+      s.start_time,
+      s.end_time,
+      sc.school_name,
+      c.class_name,
+      ay.year_name
+    FROM public.ptm_sessions s
+    JOIN public.ptm_bookings b ON b.ptm_session_id = s.session_id
+    JOIN public.schools sc ON sc.school_id = s.school_id
+    LEFT JOIN public.classes c ON c.class_id = s.class_id
+    JOIN public.academic_years ay ON ay.year_id = s.year_id
+    WHERE b.student_id = $1
+    ORDER BY s.session_date DESC
+    LIMIT $2 OFFSET $3;
+  `;
+  const offset = (page - 1) * limit;
+  const { rows } = await query(sql, [studentId, limit, offset]);
+  return rows;
+}
