@@ -13,11 +13,13 @@ import masterDataRoutes from "./routes/masterDataRoutes.js";
 import parentStudentRelationshipRoutes from "./routes/parentStudentRelationshipRoutes.js";
 
 
+import reportCardRoutes from "./routes/reportCardRoutes.js";
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // IMPORTANT for file uploads
 
 // logging middleware
 app.use(logger);
@@ -40,5 +42,6 @@ app.use("/api/master", masterDataRoutes);
 app.use("/api/relationships", parentStudentRelationshipRoutes);
 
 
+app.use('/api/report-cards', reportCardRoutes);
 
 export default app;
