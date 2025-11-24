@@ -5,16 +5,14 @@ import { authenticate } from "../middleware/authMiddleware.js";
 
 const router = Router();
 
-// POST /api/students/register
-
-// router.post(
-//     "/register",
-//     authenticate,
-//     authorizeRoles("ADMIN", "PRINCIPAL"),
-//     registerStudent
-//   );
+// POST /api/students/register - Create student
+router.post(
+    "/register",
+    authenticate,
+    authorizeRoles("ADMIN", "PRINCIPAL"),
+    registerStudent
+  );
   
-router.post("/register", registerStudent);
 router.get('/school/:school_id', getStudentsBySchoolId);
 
 export default router;

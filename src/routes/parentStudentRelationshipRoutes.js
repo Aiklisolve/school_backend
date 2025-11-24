@@ -8,26 +8,29 @@ import {
   updateRelationshipController,
   deleteRelationshipController,
 } from "../controllers/parentStudentRelationshipController.js";
-// import { authMiddleware } from "../middleware/auth.js"; // if you want protected
+import { authenticate } from "../middleware/authMiddleware.js";
+import { authorizeRoles } from "../middleware/roleMiddleware.js";
 
 const router = Router();
 
 // Create relationship
-router.post("/", /*authMiddleware,*/ createRelationshipController);
+// POST /api/relationships - Create parent-student relationship
+router.post("/", authenticate, authorizeRoles('ADMIN', 'PRINCIPAL'), createRelationshipController);
 
 // List (with filters & pagination)
-router.get("/", /*authMiddleware,*/ listRelationshipsController);
+router.get("/", listRelationshipsController);
 
 // Get by student
-router.get("/student/:studentId", /*authMiddleware,*/ getByStudentController);
+router.get("/student/:studentId", getByStudentController);
 
 // Get by parent
-router.get("/parent/:parentId", /*authMiddleware,*/ getByParentController);
+router.get("/parent/:parentId", getByParentController);
 
 // Update
-router.patch("/:relationshipId", /*authMiddleware,*/ updateRelationshipController);
+// PATCH /api/relationships/:relationshipId - Update relationship
+router.patch("/:relationshipId", authenticate, authorizeRoles('ADMIN', 'PRINCIPAL'), updateRelationshipController);
 
 // Delete
-router.delete("/:relationshipId", /*authMiddleware,*/ deleteRelationshipController);
+router.delete("/:relationshipId", authenticate, authorizeRoles('ADMIN', 'PRINCIPAL'), deleteRelationshipController);
 
 export default router;

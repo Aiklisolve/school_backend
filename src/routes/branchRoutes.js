@@ -8,12 +8,14 @@ import {
   deactivateBranchController,
    listAllBranchesController,
 } from "../controllers/branchController.js";
+import { authenticate } from "../middleware/authMiddleware.js";
+import { authorizeRoles } from "../middleware/roleMiddleware.js";
 
 const router = Router();
 
 // Create branch
 // POST /api/branches
-router.post("/", createBranchController);
+router.post("/", authenticate, authorizeRoles('ADMIN', 'PRINCIPAL'), createBranchController);
 
 
 router.get("/", listAllBranchesController);
@@ -27,10 +29,10 @@ router.get("/school/:schoolId", listBranchesForSchoolController);
 
 // Update branch
 // PUT /api/branches/:branchId
-router.put("/:branchId", updateBranchController);
+router.put("/:branchId", authenticate, authorizeRoles('ADMIN', 'PRINCIPAL'), updateBranchController);
 
 // Soft delete / deactivate branch
 // DELETE /api/branches/:branchId
-router.delete("/:branchId", deactivateBranchController);
+router.delete("/:branchId", authenticate, authorizeRoles('ADMIN', 'PRINCIPAL'), deactivateBranchController);
 
 export default router;

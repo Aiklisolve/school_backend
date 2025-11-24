@@ -6,14 +6,13 @@ import { authorizeRoles } from "../middleware/roleMiddleware.js";
 
 const router = Router();
 
-router.post("/register", registerParent);
-
-// router.post(
-//     "/register",
-//     authenticate,
-//     authorizeRoles("ADMIN", "PRINCIPAL"),
-//     registerParent
-//   );
+// POST /api/parents/register - Create parent
+router.post(
+    "/register",
+    authenticate,
+    authorizeRoles("ADMIN", "PRINCIPAL"),
+    registerParent
+  );
 
   
 router.get('/school/:school_id', getParentsBySchoolId);

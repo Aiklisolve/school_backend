@@ -14,15 +14,19 @@ import {
   getBookingsByTeacherController,
   listPtmBookingsController,
 } from "../controllers/ptmBookingController.js";
+import { authenticate } from "../middleware/authMiddleware.js";
+import { authorizeRoles } from "../middleware/roleMiddleware.js";
 
 const router = Router();
 
 // PTM Sessions
-router.post("/sessions", createPtmSessionController);   // create PTM session
+// POST /api/ptm/sessions - Create PTM session
+router.post("/sessions", authenticate, authorizeRoles('ADMIN', 'PRINCIPAL'), createPtmSessionController);
 router.get("/sessions", listPtmSessionsController);     // list PTM sessions (filters+pagination)
 
 // PTM Bookings
-router.post("/bookings", createPtmBookingController);   // create booking
+// POST /api/ptm/bookings - Create booking
+router.post("/bookings", authenticate, authorizeRoles('PARENT', 'TEACHER'), createPtmBookingController);
 router.get("/bookings", listPtmBookingsController);     // list bookings (filters+pagination)
 
 

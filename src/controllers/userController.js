@@ -577,3 +577,153 @@ export async function getUserBySchoolId(req, res) {
     });
   }
 }
+
+
+function generateOtp(len = 6) {
+  return Math.floor(10 ** (len - 1) + Math.random() * 9 * 10 ** (len - 1)).toString();
+}
+
+const OTP_TTL_MINUTES = 10;
+const OTP_TYPE_PASSWORD_RESET = "PASSWORD_RESET";
+
+export async function sendPasswordResetOtp(req, res) {
+  try {
+    const { phone } = req.body;
+    if (!phone) {
+      return res.status(400).json({ message: "phone is required" });
+    }
+
+    // 1) Find user by phone (phone is unique in users table)
+    const userRes = await query(
+      `SELECT user_id FROM public.users WHERE phone = $1`,
+      [phone]
+    );
+
+    if (!userRes.rows.length) {
+      return res.status(404).json({ message: "User with this phone not found" });
+    }
+
+    const userId = userRes.rows[0].user_id;
+    const otp = generateOtp(6);
+    const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
+
+    // 2) Mark previous unused PASSWORD_RESET OTPs as used
+    await query(
+      `UPDATE public.users_otps
+         SET is_used = true
+       WHERE user_id = $1
+         AND phone = $2
+         AND otp_type = $3
+         AND is_used = false`,
+      [userId, phone, OTP_TYPE_PASSWORD_RESET]
+    );
+
+    // 3) Insert new OTP row
+    await query(
+      `INSERT INTO public.users_otps
+         (user_id, phone, email, otp_code, otp_type, is_used,
+          expires_at, attempts_count, max_attempts, ip_address)
+       VALUES ($1,$2,NULL,$3,$4,false,$5,0,3,$6)`,
+      [userId, phone, otp, OTP_TYPE_PASSWORD_RESET, expiresAt, req.ip || null]
+    );
+
+    // 4) Send SMS here (integrate your SMS provider)
+    console.log(`Password reset OTP for ${phone}: ${otp}`);
+
+    return res.json({
+      status: "success",
+      message: `OTP sent to registered mobile number : ${phone} is ${otp}`
+    });
+  } catch (err) {
+    console.error("sendPasswordResetOtp error:", err);
+    return res.status(500).json({ status: "error" });
+  }
+}
+
+function hashPasswordSHA256(plain) {
+  return crypto.createHash("sha256").update(plain).digest("hex");
+}
+
+export async function changePasswordWithOtp(req, res) {
+  try {
+    const { phone, otp, new_password } = req.body;
+
+    if (!phone || !otp || !new_password) {
+      return res
+        .status(400)
+        .json({ message: "phone, otp and new_password are required" });
+    }
+
+    // 1) Get latest valid OTP for this phone
+    const otpRes = await query(
+      `SELECT otp_id, user_id, attempts_count, max_attempts
+         FROM public.users_otps
+        WHERE phone = $1
+          AND otp_code = $2
+          AND otp_type = $3
+          AND is_used = false
+          AND expires_at > NOW()
+        ORDER BY created_at DESC
+        LIMIT 1`,
+      [phone, otp, OTP_TYPE_PASSWORD_RESET]
+    );
+
+    if (!otpRes.rows.length) {
+      // optional: bump attempts on latest OTP for this phone/type
+      await query(
+        `UPDATE public.users_otps
+            SET attempts_count = attempts_count + 1
+          WHERE otp_id = (
+            SELECT otp_id FROM public.users_otps
+             WHERE phone = $1
+               AND otp_type = $2
+               AND is_used = false
+             ORDER BY created_at DESC
+             LIMIT 1
+          )`,
+        [phone, OTP_TYPE_PASSWORD_RESET]
+      );
+
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
+    const { otp_id, user_id, attempts_count, max_attempts } = otpRes.rows[0];
+
+    if (attempts_count >= max_attempts) {
+      // mark used/blocked
+      await query(
+        `UPDATE public.users_otps
+            SET is_used = true
+          WHERE otp_id = $1`,
+        [otp_id]
+      );
+      return res
+        .status(400)
+        .json({ message: "Maximum OTP attempts exceeded. Request a new OTP." });
+    }
+
+    const newHash = hashPasswordSHA256(new_password);
+
+    // 2) Update password
+    await query(
+      `UPDATE public.users
+          SET password_hash = $1
+        WHERE user_id = $2`,
+      [newHash, user_id]
+    );
+
+    // 3) Mark OTP used + increment attempts_count
+    await query(
+      `UPDATE public.users_otps
+          SET is_used = true,
+              attempts_count = attempts_count + 1
+        WHERE otp_id = $1`,
+      [otp_id]
+    );
+
+    return res.json({ status: "success", message: "Password changed" });
+  } catch (err) {
+    console.error("changePasswordWithOtp error:", err);
+    return res.status(500).json({ status: "error" });
+  }
+}

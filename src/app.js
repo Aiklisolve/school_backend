@@ -11,7 +11,7 @@ import branchRoutes from "./routes/branchRoutes.js";
 import ptmRoutes from "./routes/ptmRoutes.js";
 import masterDataRoutes from "./routes/masterDataRoutes.js";
 import parentStudentRelationshipRoutes from "./routes/parentStudentRelationshipRoutes.js";
-
+import bulkUploadRoutes from "./routes/bulkUploadRoutes.js";
 
 import reportCardRoutes from "./routes/reportCardRoutes.js";
 
@@ -40,7 +40,7 @@ app.use("/api/branches", branchRoutes);
 app.use("/api/ptm", ptmRoutes);
 app.use("/api/master", masterDataRoutes);
 app.use("/api/relationships", parentStudentRelationshipRoutes);
-
+app.use("/api/bulk-upload", bulkUploadRoutes);
 
 app.use('/api/report-cards', reportCardRoutes);
 

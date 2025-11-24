@@ -1,4 +1,7 @@
 import jwt from "jsonwebtoken";
+import { config } from "../config/env.js";
+import { logError } from "./logger.js";
+
 //RBAC implemented here
 export function authenticate(req, res, next) {
   const token = req.headers.authorization?.split(" ")[1];
@@ -8,10 +11,21 @@ export function authenticate(req, res, next) {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Use the same JWT secret from config to ensure consistency
+    const decoded = jwt.verify(token, config.jwt.secret);
     req.user = decoded;
     next();
-  } catch {
-    return res.status(401).json({ message: "Invalid token" });
+  } catch (error) {
+    // Log the error for debugging
+    logError(error, `JWT Verification Failed - ${req.method} ${req.url}`);
+    
+    // Return appropriate error message
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: "Token expired" });
+    }
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ message: "Invalid token" });
+    }
+    return res.status(401).json({ message: "Authentication failed" });
   }
 }
