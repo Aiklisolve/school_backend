@@ -16,12 +16,15 @@ import schoolRoutes from "./routes/schoolRoutes.js";
 console.log('✓ schoolRoutes loaded:', typeof schoolRoutes);
 
 import studentRoutes from "./routes/studentRoutes.js";
-console.log('✓ studentRoutes loaded:', typeof studentRoutes);
-
+import sessionRoutes from "./routes/sessionRoutes.js";
+import branchRoutes from "./routes/branchRoutes.js";
+import ptmRoutes from "./routes/ptmRoutes.js";
+import masterDataRoutes from "./routes/masterDataRoutes.js";
+import parentStudentRelationshipRoutes from "./routes/parentStudentRelationshipRoutes.js";
+import bulkUploadRoutes from "./routes/bulkUploadRoutes.js";
 import reportCardRoutes from "./routes/reportCardRoutes.js";
-console.log('✓ reportCardRoutes loaded:', typeof reportCardRoutes);
 import unifiedSchoolSetupRoutes from "./routes/unifiedSchoolSetupRoutes.js";
-console.log('✓ unifiedSchoolSetupRoutes loaded:', typeof unifiedSchoolSetupRoutes);
+
 
 const app = express();
 
@@ -41,7 +44,15 @@ app.use('/api/users', userRoutes);
 app.use("/api/parents", parentRoutes);
 app.use("/api/schools", schoolRoutes);
 app.use("/api/students", studentRoutes);
+app.use("/api/sessions", sessionRoutes);
+app.use("/api/branches", branchRoutes);
+app.use("/api/ptm", ptmRoutes);
+app.use("/api/master", masterDataRoutes);
+app.use("/api/relationships", parentStudentRelationshipRoutes);
+app.use("/api/bulk-upload", bulkUploadRoutes);
+
 app.use('/api/report-cards', reportCardRoutes);
 app.use('/api/unified-setup', unifiedSchoolSetupRoutes);
+
 
 export default app;

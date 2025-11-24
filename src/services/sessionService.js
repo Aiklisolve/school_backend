@@ -22,11 +22,11 @@ const expiresAt = moment(utcTime)
     insert into user_sessions
       (session_id, user_id, jwt_token, device_type,
        ip_address, user_agent, expires_at, last_activity_at,
-        created_at)
+        created_at,is_active)
     values
       ($1, $2, $3, 'system',
        $4, $5, $6, $7,
-       $6)
+       $6,true)
     returning *;
   `;
 
@@ -52,4 +52,65 @@ function cryptoRandomUUID() {
     const { v4: uuidv4 } = require('uuid');
     return uuidv4();
   }
+}
+
+/**
+ * Validate session by session_id
+ */
+export async function validateSession(sessionId) {
+  const sql = `
+    SELECT
+      session_id,
+      user_id,
+      jwt_token,
+      expires_at,
+      is_active
+    FROM public.user_sessions
+    WHERE session_id = $1;
+  `;
+
+  const { rows } = await query(sql, [sessionId]);
+  if (!rows.length) {
+    return { valid: false, reason: "not_found" };
+  }
+
+  const session = rows[0];
+  const now = new Date();
+
+  if (!session.is_active) {
+    return { valid: false, reason: "inactive" };
+  }
+
+  if (session.expires_at <= now) {
+    return { valid: false, reason: "expired" };
+  }
+
+  return { valid: true, session };
+}
+
+/**
+ * Destroy session by session_id (logout)
+ */
+export async function destroySession(sessionId) {
+  const sql = `
+    UPDATE public.user_sessions
+    SET is_active = false,
+        last_activity_at = NOW()
+    WHERE session_id = $1;
+  `;
+
+  await query(sql, [sessionId]);
+}
+
+/**
+ * Optionally: destroy all sessions for a user (force logout everywhere)
+ */
+export async function destroyAllSessionsForUser(userId) {
+  const sql = `
+    UPDATE public.user_sessions
+    SET is_active = false,
+        last_activity = NOW()
+    WHERE user_id = $1;
+  `;
+  await query(sql, [userId]);
 }

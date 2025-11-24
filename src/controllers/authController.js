@@ -163,7 +163,7 @@ export async function loginController(req, res) {
 
       const userAgent = req.headers['user-agent'] || null;
 
-      const { sessionId, expiresAt } = await createSessionForUser(
+      const { sessionId, expiresAt , dbRow} = await createSessionForUser(
         user.user_id,
         token,
         ip,
@@ -179,6 +179,7 @@ export async function loginController(req, res) {
         expiry: expiresAt,
         role: user.role,
         email: user.email,
+        session_status: dbRow['is_active'],
       });
     }
 
