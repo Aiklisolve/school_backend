@@ -12,8 +12,9 @@ import ptmRoutes from "./routes/ptmRoutes.js";
 import masterDataRoutes from "./routes/masterDataRoutes.js";
 import parentStudentRelationshipRoutes from "./routes/parentStudentRelationshipRoutes.js";
 import bulkUploadRoutes from "./routes/bulkUploadRoutes.js";
-
 import reportCardRoutes from "./routes/reportCardRoutes.js";
+import unifiedSchoolSetupRoutes from "./routes/unifiedSchoolSetupRoutes.js";
+
 
 const app = express();
 
@@ -43,5 +44,7 @@ app.use("/api/relationships", parentStudentRelationshipRoutes);
 app.use("/api/bulk-upload", bulkUploadRoutes);
 
 app.use('/api/report-cards', reportCardRoutes);
+app.use('/api/unified-setup', unifiedSchoolSetupRoutes);
+
 
 export default app;
