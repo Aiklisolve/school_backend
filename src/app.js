@@ -24,6 +24,7 @@ import parentStudentRelationshipRoutes from "./routes/parentStudentRelationshipR
 import bulkUploadRoutes from "./routes/bulkUploadRoutes.js";
 import reportCardRoutes from "./routes/reportCardRoutes.js";
 import unifiedSchoolSetupRoutes from "./routes/unifiedSchoolSetupRoutes.js";
+import attendanceRoutes from './routes/attendanceRoutes.js';
 
 
 const app = express();
@@ -35,7 +36,19 @@ app.use(express.urlencoded({ extended: true }));
 app.use(logger);
 
 app.get('/', (req, res) => {
-  res.json({ status: 'ok', message: 'School Auth API Running' });
+  res.json({ status: 'ok', message: 'School Auth API Running',
+    version: '1.0.0',
+    endpoints: {
+      auth: '/api/auth',
+      users: '/api/users',
+      parents: '/api/parents',
+      schools: '/api/schools',
+      students: '/api/students',
+      reportCards: '/api/report-cards',
+      schoolManagement: '/api/school-management',
+      unifiedSetup: '/api/unified-setup',
+      attendance: '/api/attendance',}
+     });
 });
 
 // Register routes
@@ -50,9 +63,8 @@ app.use("/api/ptm", ptmRoutes);
 app.use("/api/master", masterDataRoutes);
 app.use("/api/relationships", parentStudentRelationshipRoutes);
 app.use("/api/bulk-upload", bulkUploadRoutes);
-
 app.use('/api/report-cards', reportCardRoutes);
 app.use('/api/unified-setup', unifiedSchoolSetupRoutes);
-
+app.use('/api/attendance', attendanceRoutes);
 
 export default app;

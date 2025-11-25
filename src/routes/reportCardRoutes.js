@@ -5,6 +5,8 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import reportCardService from '../services/reportCardService.js';
 import reportCardController from '../controllers/reportCardController.js';
+import { authenticate } from '../middleware/authMiddleware.js';
+
 
 const router = express.Router();
 
@@ -99,7 +101,7 @@ router.get('/health', (req, res) => {
 router.post(
   '/upload-csv',
   authenticate,
-  authorizeRoles('ADMIN', 'PRINCIPAL'),
+  // authorizeRoles('ADMIN', 'PRINCIPAL', 'TEACHER'),
   upload.single('csvFile'),
   handleMulterError,
   async (req, res) => {
