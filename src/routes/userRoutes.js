@@ -10,7 +10,7 @@ const router = Router();
 router.post('/register', authenticate, authorizeRoles('ADMIN', 'PRINCIPAL'), registerUser);
 
 // GET /api/users
-router.get('/getusers', getAllUsers);
+router.get('/', getAllUsers);
 
 // GET /api/users/school/:school_id
 router.get('/school/:school_id/:role', getUserBySchoolId);

@@ -141,17 +141,9 @@ export async function registerParent(req, res) {
 }
 
 // src/controllers/parentController.js
-
-export async function getParentsBySchoolId(req, res) {
-  try {
-    const { school_id } = req.params;
-
-    if (!school_id) {
-      return res.status(400).json({
-        status: "error",
-        message: "school_id is required"
-      });
-    }
+export async function listParents(req, res) {
+    const { page, limit, is_active } = req.query;
+    const offset = (page - 1) * limit;
 
     const sql = `
       SELECT 
@@ -182,11 +174,12 @@ export async function getParentsBySchoolId(req, res) {
       FROM public.parents p
       JOIN public.schools s
         ON p.school_id = s.school_id
-      WHERE p.school_id = $1
+
       ORDER BY p.parent_id DESC;
     `;
 
-    const { rows } = await query(sql, [school_id]);
+
+    const { rows } = await query(sql);
 
     if (rows.length === 0) {
       return res.status(404).json({
@@ -200,11 +193,4 @@ export async function getParentsBySchoolId(req, res) {
       data: rows
     });
 
-  } catch (err) {
-    console.error("Get parents error:", err);
-    return res.status(500).json({
-      status: "error",
-      message: "Internal server error"
-    });
-  }
-}
+  } 
