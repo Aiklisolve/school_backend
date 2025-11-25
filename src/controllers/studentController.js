@@ -26,7 +26,7 @@ export async function registerStudent(req, res) {
       medical_conditions,
       emergency_contact_name,
       emergency_contact_phone,
-      student_photo_url
+      student_photo_url,user_id
     } = req.body;
 
     const isYmdDate = (value) =>
@@ -36,6 +36,7 @@ export async function registerStudent(req, res) {
     // 1. Required field validation
     if (
       !school_id ||
+      !user_id ||
       !admission_number ||
       !full_name ||
       !date_of_birth ||
@@ -120,14 +121,15 @@ export async function registerStudent(req, res) {
         emergency_contact_name,
         emergency_contact_phone,
         student_photo_url,
-        is_active
+        is_active,
+        user_id
       )
       VALUES (
         $1, $2, $3, $4, $5,
         $6, $7, $8, $9, $10,
         $11, $12, $13, $14, $15,
         $16, $17, $18, $19, $20,
-        true
+        true, $21
       )
       RETURNING
         student_id,
@@ -142,7 +144,8 @@ export async function registerStudent(req, res) {
         admission_class,
         current_status,
         is_active,
-        created_at;
+        created_at,
+        user_id;
     `;
 
     const params = [
@@ -166,6 +169,7 @@ export async function registerStudent(req, res) {
       emergency_contact_name || null,
       emergency_contact_phone || null,
       student_photo_url || null,
+      user_id,
     ];
 
     const { rows } = await query(insertSql, params);

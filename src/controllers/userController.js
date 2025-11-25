@@ -514,6 +514,7 @@ export async function changePassword(req, res) {
 export async function getUserBySchoolId(req, res) {
   try {
     const { school_id } = req.params;          // from /school/:school_id
+    const { role } = req.params;          // from /school/:school_id
     // const schoolId = Number(school_id);     // optional: if you want it as number
 
     const sql = `
@@ -552,11 +553,11 @@ export async function getUserBySchoolId(req, res) {
       LEFT JOIN public.branches b
         ON u.branch_id = b.branch_id
        AND b.school_id = u.school_id
-      WHERE u.school_id = $1;
+      WHERE u.school_id = $1 and u.role = $2;
     `;
 
     // ❌ was [id] – id is not defined
-    const { rows } = await query(sql, [school_id]);
+    const { rows } = await query(sql, [school_id, role]);
 
     if (rows.length === 0) {
       return res.status(404).json({

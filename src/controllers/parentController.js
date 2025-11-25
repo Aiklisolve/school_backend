@@ -17,11 +17,12 @@ export async function registerParent(req, res) {
       address_line2,
       city,
       state,
-      pincode
+      pincode,
+      user_id
     } = req.body;
 
     // 1. Required validation
-    if (!school_id || !full_name || !phone) {
+    if (!school_id || !full_name || !phone || !user_id) {
       return res.status(400).json({
         status: "error",
         message: "school_id, full_name and phone are required"
@@ -73,15 +74,16 @@ export async function registerParent(req, res) {
         city,
         state,
         pincode,
-        is_active
+        is_active,
+        user_id
       )
       VALUES (
         $1, $2, $3, $4, $5, 
         $6, $7, $8,
         $9, $10, $11,
-        $12, $13, true
+        $12, $13, true, $14
       )
-      RETURNING parent_id, school_id, full_name, phone, email, is_active, created_at;
+      RETURNING parent_id, school_id, full_name, phone, email, is_active, created_at, user_id;
     `;
 
     const params = [
@@ -97,7 +99,8 @@ export async function registerParent(req, res) {
       address_line2 || null,
       city || null,
       state || null,
-      pincode || null
+      pincode || null,
+      user_id
     ];
 
     const { rows } = await query(insertSql, params);

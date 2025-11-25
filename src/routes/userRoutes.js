@@ -13,7 +13,7 @@ router.post('/register', authenticate, authorizeRoles('ADMIN', 'PRINCIPAL'), reg
 router.get('/getusers', getAllUsers);
 
 // GET /api/users/school/:school_id
-router.get('/school/:school_id', getUserBySchoolId);
+router.get('/school/:school_id/:role', getUserBySchoolId);
 
 // GET /api/users/:id
 router.get('/:id', getUserById);

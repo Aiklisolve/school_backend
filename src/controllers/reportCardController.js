@@ -1,14 +1,19 @@
 import reportCardService from '../services/reportCardService.js';
-import pool from '../config/db.js';
+import { query } from '../config/db.js';
 import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 class ReportCardController {
   async uploadCSV(req, res) {
     try {
       console.log('=== CSV Upload Request Received ===');
-      
+
       const { schoolId, yearId, term } = req.body;
-      const uploadedBy = req.user?.userid || 1;
+      const uploadedBy = req.user?.user_id || 1;
 
       console.log(`School: ${schoolId}, Year: ${yearId}, Term: ${term}`);
 
@@ -140,7 +145,7 @@ class ReportCardController {
 
     } catch (error) {
       console.error('Error in getReportCardDetails:', error);
-      
+
       if (error.message === 'Report card not found') {
         return res.status(404).json({
           success: false,
@@ -166,7 +171,7 @@ class ReportCardController {
         });
       }
 
-      let query = `
+      let sqlQuery = `
         SELECT 
           rc.reportid,
           rc.studentid,
@@ -190,17 +195,17 @@ class ReportCardController {
 
       if (classId) {
         params.push(parseInt(classId));
-        query += ` AND rc.classid = $${params.length}`;
+        sqlQuery += ` AND rc.classid = $${params.length}`;
       }
 
       if (sectionId) {
         params.push(parseInt(sectionId));
-        query += ` AND rc.sectionid = $${params.length}`;
+        sqlQuery += ` AND rc.sectionid = $${params.length}`;
       }
 
-      query += ` ORDER BY c.classorder, sec.sectionname, s.fullname`;
+      sqlQuery += ` ORDER BY c.classorder, sec.sectionname, s.fullname`;
 
-      const result = await pool.query(query, params);
+      const result = await query(sqlQuery, params);
 
       return res.status(200).json({
         success: true,
@@ -231,7 +236,7 @@ class ReportCardController {
       }
 
       const checkQuery = 'SELECT status FROM report_cards WHERE reportid = $1';
-      const checkResult = await pool.query(checkQuery, [parseInt(reportId)]);
+      const checkResult = await query(checkQuery, [parseInt(reportId)]);
 
       if (checkResult.rows.length === 0) {
         return res.status(404).json({
@@ -247,8 +252,8 @@ class ReportCardController {
         });
       }
 
-      await pool.query('DELETE FROM report_card_subjects WHERE reportid = $1', [parseInt(reportId)]);
-      await pool.query('DELETE FROM report_cards WHERE reportid = $1', [parseInt(reportId)]);
+      await query('DELETE FROM report_card_subjects WHERE reportid = $1', [parseInt(reportId)]);
+      await query('DELETE FROM report_cards WHERE reportid = $1', [parseInt(reportId)]);
 
       return res.status(200).json({
         success: true,
@@ -263,6 +268,139 @@ class ReportCardController {
       });
     }
   }
+
+  /**
+   * Download report card as PDF
+   */
+  async downloadReportCard(req, res) {
+    try {
+      const { reportId } = req.params;
+
+      if (!reportId || isNaN(reportId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid reportId',
+        });
+      }
+
+      console.log(`Generating PDF for report ID: ${reportId}`);
+
+      // Get report card data
+      const reportQuery = `
+        SELECT
+          rc.reportid,
+          rc.studentid,
+          s.fullname as full_name,
+          s.admissionnumber as admission_number,
+          s.dateofbirth as date_of_birth,
+          c.classname as class_name,
+          sec.sectionname as section_name,
+          rc.overallpercentage as overall_percentage,
+          rc.status,
+          rc.yearid as year_id,
+          rc.term
+        FROM report_cards rc
+        JOIN students s ON rc.studentid = s.studentid
+        JOIN classes c ON rc.classid = c.classid
+        JOIN sections sec ON rc.sectionid = sec.sectionid
+        WHERE rc.reportid = $1
+      `;
+
+      const reportResult = await query(reportQuery, [parseInt(reportId)]);
+
+      if (reportResult.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Report card not found',
+        });
+      }
+
+      const report = reportResult.rows[0];
+
+      // Get subjects
+      const subjectsQuery = `
+        SELECT
+          subjectname as subject_name,
+          internalmarks as internal_marks,
+          externalmarks as external_marks,
+          totalmarks as total_marks,
+          maxmarks as max_marks,
+          percentage,
+          grade
+        FROM report_card_subjects
+        WHERE reportid = $1
+        ORDER BY subjectname
+      `;
+
+      const subjectsResult = await query(subjectsQuery, [parseInt(reportId)]);
+
+      // Prepare data for PDF
+      const pdfData = {
+        school: {
+          name: 'Your School Name', // TODO: Get from database
+        },
+        student: {
+          full_name: report.full_name,
+          admission_number: report.admission_number,
+          class_name: report.class_name,
+          section_name: report.section_name,
+          date_of_birth: report.date_of_birth,
+          year_id: report.year_id,
+          term: report.term,
+        },
+        subjects: subjectsResult.rows,
+        overall: {
+          overall_percentage: report.overall_percentage,
+        },
+        term: report.term,
+      };
+
+      // Create PDF directory if it doesn't exist
+      const pdfDir = path.join(__dirname, '../../uploads/report_cards');
+      if (!fs.existsSync(pdfDir)) {
+        fs.mkdirSync(pdfDir, { recursive: true });
+      }
+
+      // Create PDF path
+      const pdfPath = path.join(
+        pdfDir,
+        `report-card-${report.studentid}-${report.year_id}-${report.term}.pdf`
+      );
+
+      // TODO: Implement PDF generation service
+      // await pdfGeneratorService.generateReportCardPDF(pdfData, pdfPath);
+
+      console.log(`PDF path: ${pdfPath}`);
+      console.log('PDF generation service not implemented yet');
+
+      // For now, return the data
+      return res.status(200).json({
+        success: true,
+        message: 'PDF generation not yet implemented',
+        data: pdfData,
+      });
+
+      // Uncomment when PDF service is ready:
+      // await pdfGeneratorService.generateReportCardPDF(pdfData, pdfPath);
+      // console.log(`PDF generated successfully: ${pdfPath}`);
+      // res.download(pdfPath, `Report-Card-${report.full_name}-${report.term}.pdf`, (err) => {
+      //   if (err) {
+      //     console.error('Download error:', err);
+      //   }
+      //   // Optionally delete file after download
+      //   // fs.unlinkSync(pdfPath);
+      // });
+
+    } catch (error) {
+      console.error('Error in downloadReportCard:', error);
+      return res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
 }
+
+
 
 export default new ReportCardController();

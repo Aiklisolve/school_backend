@@ -14,7 +14,7 @@ import parentStudentRelationshipRoutes from "./routes/parentStudentRelationshipR
 import bulkUploadRoutes from "./routes/bulkUploadRoutes.js";
 import reportCardRoutes from "./routes/reportCardRoutes.js";
 import unifiedSchoolSetupRoutes from "./routes/unifiedSchoolSetupRoutes.js";
-
+import uploadRoutes from "./routes/uploadRoute.js"; 
 
 const app = express();
 
@@ -45,6 +45,6 @@ app.use("/api/bulk-upload", bulkUploadRoutes);
 
 app.use('/api/report-cards', reportCardRoutes);
 app.use('/api/unified-setup', unifiedSchoolSetupRoutes);
-
+app.use("/api", uploadRoutes);
 
 export default app;
