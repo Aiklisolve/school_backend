@@ -8,6 +8,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 class ReportCardController {
+  /**
+   * Upload CSV
+   */
   async uploadCSV(req, res) {
     try {
       console.log('=== CSV Upload Request Received ===');
@@ -90,6 +93,9 @@ class ReportCardController {
     }
   }
 
+  /**
+   * Get uploaded marks
+   */
   async getUploadedMarks(req, res) {
     try {
       const { schoolId, yearId, term } = req.query;
@@ -125,6 +131,9 @@ class ReportCardController {
     }
   }
 
+  /**
+   * Get report card details
+   */
   async getReportCardDetails(req, res) {
     try {
       const { reportId } = req.params;
@@ -160,6 +169,9 @@ class ReportCardController {
     }
   }
 
+  /**
+   * List report cards
+   */
   async listReportCards(req, res) {
     try {
       const { schoolId, yearId, term, classId, sectionId } = req.query;
@@ -173,22 +185,22 @@ class ReportCardController {
 
       let sqlQuery = `
         SELECT 
-          rc.reportid,
-          rc.studentid,
-          s.fullname as student_name,
-          s.admissionnumber,
-          c.classname,
-          sec.sectionname,
-          rc.overallpercentage,
+          rc.report_id,
+          rc.student_id,
+          s.full_name as student_name,
+          s.admission_number,
+          c.class_name,
+          sec.section_name,
+          rc.overall_percentage,
           rc.status,
-          rc.publishedat,
-          rc.createdat,
-          rc.updatedat
+          rc.published_at,
+          rc.created_at,
+          rc.updated_at
         FROM report_cards rc
-        JOIN students s ON rc.studentid = s.studentid
-        JOIN classes c ON rc.classid = c.classid
-        JOIN sections sec ON rc.sectionid = sec.sectionid
-        WHERE s.schoolid = $1 AND rc.yearid = $2 AND rc.term = $3
+        JOIN students s ON rc.student_id = s.student_id
+        JOIN classes c ON rc.class_id = c.class_id
+        JOIN sections sec ON rc.section_id = sec.section_id
+        WHERE s.school_id = $1 AND rc.year_id = $2 AND rc.term = $3
       `;
 
       const params = [parseInt(schoolId), parseInt(yearId), term.toUpperCase()];
@@ -224,6 +236,9 @@ class ReportCardController {
     }
   }
 
+  /**
+   * Delete report card (DRAFT only)
+   */
   async deleteReportCard(req, res) {
     try {
       const { reportId } = req.params;

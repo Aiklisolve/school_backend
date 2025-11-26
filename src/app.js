@@ -1,10 +1,20 @@
 import express from 'express';
 import cors from 'cors';
-import authRoutes from './routes/authRoutes.js';
-import userRoutes from './routes/userRoutes.js';
 import logger from './middleware/logger.js';
+
+// Import routes one by one
+import authRoutes from './routes/authRoutes.js';
+console.log('✓ authRoutes loaded:', typeof authRoutes);
+
+import userRoutes from './routes/userRoutes.js';
+console.log('✓ userRoutes loaded:', typeof userRoutes);
+
 import parentRoutes from "./routes/parentRoutes.js";
+console.log('✓ parentRoutes loaded:', typeof parentRoutes);
+
 import schoolRoutes from "./routes/schoolRoutes.js";
+console.log('✓ schoolRoutes loaded:', typeof schoolRoutes);
+
 import studentRoutes from "./routes/studentRoutes.js";
 import sessionRoutes from "./routes/sessionRoutes.js";
 import branchRoutes from "./routes/branchRoutes.js";
@@ -22,17 +32,15 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true })); // IMPORTANT for file uploads
+app.use(express.urlencoded({ extended: true }));
 
-// logging middleware
 app.use(logger);
 
-// base health route
 app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'School Auth API Running' });
 });
 
-// Routes
+// Register routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use("/api/parents", parentRoutes);
