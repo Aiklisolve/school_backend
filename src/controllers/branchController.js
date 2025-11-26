@@ -63,7 +63,7 @@ export async function createBranchController(req, res) {
       data: branch,
     });
   } catch (err) {
-    console.error("Create branch error:", err);
+    // console.error("Create branch error:", err);
 
     if (err.code === "23505") {
       // unique violation
@@ -109,7 +109,7 @@ export async function getBranchController(req, res) {
       data: branch,
     });
   } catch (err) {
-    console.error("Get branch error:", err);
+    // console.error("Get branch error:", err);
     return res.status(500).json({
       status: "error",
       message: "Internal server error while fetching branch",
@@ -151,7 +151,7 @@ export async function listBranchesForSchoolController(req, res) {
       data: result.branches,
     });
   } catch (err) {
-    console.error("List branches error:", err);
+    // console.error("List branches error:", err);
     return res.status(500).json({
       status: "error",
       message: "Internal server error while listing branches",
@@ -181,7 +181,7 @@ export async function updateBranchController(req, res) {
       data: updated,
     });
   } catch (err) {
-    console.error("Update branch error:", err);
+    // console.error("Update branch error:", err);
     return res.status(500).json({
       status: "error",
       message: "Internal server error while updating branch",
@@ -210,7 +210,7 @@ export async function deactivateBranchController(req, res) {
       data: updated,
     });
   } catch (err) {
-    console.error("Deactivate branch error:", err);
+    // console.error("Deactivate branch error:", err);
     return res.status(500).json({
       status: "error",
       message: "Internal server error while deactivating branch",
@@ -241,7 +241,7 @@ export async function listAllBranchesController(req, res) {
       data: result.branches,
     });
   } catch (err) {
-    console.error("List all branches error:", err);
+    // console.error("List all branches error:", err);
     return res.status(500).json({
       status: "error",
       message: "Internal server error while listing branches",

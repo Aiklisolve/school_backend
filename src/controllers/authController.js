@@ -189,7 +189,7 @@ export async function loginController(req, res) {
       message: `Unknown step: ${step}`,
     });
   } catch (err) {
-    console.error('Login error:', err);
+    // console.error('Login error:', err);
     return res.status(500).json({
       status: 500,
       message: 'Internal server error',

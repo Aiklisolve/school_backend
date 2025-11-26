@@ -33,7 +33,7 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const filename = 'attendance-' + uniqueSuffix + path.extname(file.originalname);
-    console.log(`Saving file as: ${filename}`);
+    // console.log(`Saving file as: ${filename}`);
     cb(null, filename);
   },
 });
@@ -50,7 +50,7 @@ const upload = multer({
       console.error(`Rejected file: ${file.originalname}`);
       return cb(new Error('Only CSV files are allowed'));
     }
-    console.log(`Accepted file: ${file.originalname}`);
+    // console.log(`Accepted file: ${file.originalname}`);
     cb(null, true);
   },
 });
@@ -225,6 +225,6 @@ router.get('/info', (req, res) => {
   });
 });
 
-console.log('✅ Attendance routes loaded');
+// console.log('✅ Attendance routes loaded');
 
 export default router;

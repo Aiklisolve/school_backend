@@ -23,7 +23,7 @@ const pdfOutputDir = path.join(__dirname, '../../uploads/report_cards');
 [csvUploadDir, pdfOutputDir].forEach(dir => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
-    console.log(`✓ Created directory: ${dir}`);
+    // console.log(`✓ Created directory: ${dir}`);
   }
 });
 
@@ -38,7 +38,7 @@ const storage = multer.diskStorage({
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const filename = 'report-card-' + uniqueSuffix + path.extname(file.originalname);
-    console.log(`Saving file as: ${filename}`);
+    // console.log(`Saving file as: ${filename}`);
     cb(null, filename);
   },
 });
@@ -55,7 +55,7 @@ const upload = multer({
       console.error(`Rejected file: ${file.originalname}`);
       return cb(new Error('Only CSV files are allowed'));
     }
-    console.log(`Accepted file: ${file.originalname}`);
+    // console.log(`Accepted file: ${file.originalname}`);
     cb(null, true);
   },
 });
@@ -105,7 +105,7 @@ router.post(
   handleMulterError,
   async (req, res) => {
     try {
-      console.log('=== CSV Upload Request ===');
+      // console.log('=== CSV Upload Request ===');
 
       const { schoolId, yearId, term } = req.body;
 
@@ -152,7 +152,7 @@ router.post(
         fs.unlinkSync(req.file.path);
       }
 
-      console.log('=== CSV Upload Completed ===');
+      // console.log('=== CSV Upload Completed ===');
 
       if (result.errorRecords > 0) {
         return res.status(207).json({
@@ -231,7 +231,7 @@ router.get('/test', (req, res) => {
   });
 });
 
-console.log('✅ Report card routes loaded');
+// console.log('✅ Report card routes loaded');
 
 
 
@@ -246,6 +246,6 @@ router.get(
     await reportCardController.downloadReportCard(req, res);
   }
 );
-console.log('✅ Report card routes loaded');
+// console.log('✅ Report card routes loaded');
  
 export default router;

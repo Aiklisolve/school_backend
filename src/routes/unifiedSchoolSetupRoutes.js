@@ -220,6 +220,6 @@ router.get('/info', (req, res) => {
   });
 });
 
-console.log('✅ Unified School Setup routes loaded');
+// console.log('✅ Unified School Setup routes loaded');
 
 export default router;

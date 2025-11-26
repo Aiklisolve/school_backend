@@ -16,7 +16,7 @@ import reportCardRoutes from "./routes/reportCardRoutes.js";
 import unifiedSchoolSetupRoutes from "./routes/unifiedSchoolSetupRoutes.js";
 import uploadRoutes from "./routes/uploadRoute.js"; 
 import attendanceRoutes from './routes/attendanceRoutes.js';
-
+import migrationRoutes from "./routes/migrationRoutes.js";
 
 const app = express();
 
@@ -49,6 +49,6 @@ app.use('/api/report-cards', reportCardRoutes);
 app.use('/api/unified-setup', unifiedSchoolSetupRoutes);
 app.use("/api", uploadRoutes);
 app.use('/api/attendance', attendanceRoutes);
-
+app.use("/api/migration", migrationRoutes);
 
 export default app;
