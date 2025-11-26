@@ -4,16 +4,16 @@ import logger from './middleware/logger.js';
 
 // Import routes one by one
 import authRoutes from './routes/authRoutes.js';
-console.log('✓ authRoutes loaded:', typeof authRoutes);
+// console.log('✓ authRoutes loaded:', typeof authRoutes);
 
 import userRoutes from './routes/userRoutes.js';
-console.log('✓ userRoutes loaded:', typeof userRoutes);
+// console.log('✓ userRoutes loaded:', typeof userRoutes);
 
 import parentRoutes from "./routes/parentRoutes.js";
-console.log('✓ parentRoutes loaded:', typeof parentRoutes);
+// console.log('✓ parentRoutes loaded:', typeof parentRoutes);
 
 import schoolRoutes from "./routes/schoolRoutes.js";
-console.log('✓ schoolRoutes loaded:', typeof schoolRoutes);
+// console.log('✓ schoolRoutes loaded:', typeof schoolRoutes);
 
 import studentRoutes from "./routes/studentRoutes.js";
 import sessionRoutes from "./routes/sessionRoutes.js";
