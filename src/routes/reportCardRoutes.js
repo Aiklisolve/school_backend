@@ -245,4 +245,19 @@ router.get(
 );
 console.log('✅ Report card routes loaded');
 
+
+
+/**
+ * @route   GET /api/report-cards/:reportId/download
+ * @desc    Download report card as PDF
+ * @access  Public (for now)
+ */
+router.get(
+  '/:reportId/download',
+  async (req, res) => {
+    await reportCardController.downloadReportCard(req, res);
+  }
+);
+console.log('✅ Report card routes loaded');
+ 
 export default router;

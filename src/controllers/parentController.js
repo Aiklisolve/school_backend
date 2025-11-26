@@ -17,11 +17,12 @@ export async function registerParent(req, res) {
       address_line2,
       city,
       state,
-      pincode
+      pincode,
+      user_id
     } = req.body;
 
     // 1. Required validation
-    if (!school_id || !full_name || !phone) {
+    if (!school_id || !full_name || !phone || !user_id) {
       return res.status(400).json({
         status: "error",
         message: "school_id, full_name and phone are required"
@@ -73,15 +74,16 @@ export async function registerParent(req, res) {
         city,
         state,
         pincode,
-        is_active
+        is_active,
+        user_id
       )
       VALUES (
         $1, $2, $3, $4, $5, 
         $6, $7, $8,
         $9, $10, $11,
-        $12, $13, true
+        $12, $13, true, $14
       )
-      RETURNING parent_id, school_id, full_name, phone, email, is_active, created_at;
+      RETURNING parent_id, school_id, full_name, phone, email, is_active, created_at, user_id;
     `;
 
     const params = [
@@ -97,7 +99,8 @@ export async function registerParent(req, res) {
       address_line2 || null,
       city || null,
       state || null,
-      pincode || null
+      pincode || null,
+      user_id
     ];
 
     const { rows } = await query(insertSql, params);
@@ -138,17 +141,9 @@ export async function registerParent(req, res) {
 }
 
 // src/controllers/parentController.js
-
-export async function getParentsBySchoolId(req, res) {
-  try {
-    const { school_id } = req.params;
-
-    if (!school_id) {
-      return res.status(400).json({
-        status: "error",
-        message: "school_id is required"
-      });
-    }
+export async function listParents(req, res) {
+    const { page, limit, is_active } = req.query;
+    const offset = (page - 1) * limit;
 
     const sql = `
       SELECT 
@@ -179,11 +174,12 @@ export async function getParentsBySchoolId(req, res) {
       FROM public.parents p
       JOIN public.schools s
         ON p.school_id = s.school_id
-      WHERE p.school_id = $1
+
       ORDER BY p.parent_id DESC;
     `;
 
-    const { rows } = await query(sql, [school_id]);
+
+    const { rows } = await query(sql);
 
     if (rows.length === 0) {
       return res.status(404).json({
@@ -197,11 +193,4 @@ export async function getParentsBySchoolId(req, res) {
       data: rows
     });
 
-  } catch (err) {
-    console.error("Get parents error:", err);
-    return res.status(500).json({
-      status: "error",
-      message: "Internal server error"
-    });
-  }
-}
+  } 
