@@ -471,11 +471,15 @@ export async function getUserById(req, res) {
       // You can keep as array (one row per parent) or build nicer objects.
       studentData = result.rows || [];
     }
+// console.log(studentData);
 
     // -----------------------------------------------------
     // 👨‍👩‍👧 ROLE = PARENT → attach parent profile + children
     // -----------------------------------------------------
-    if (user.role === "PARENT") {
+    if (user.role === "PARENT" || user.role === "STUDENT" && studentData != null) {
+      const studentId = studentData != null ? studentData[0].student_id : 0;
+// console.log(studentId);
+
       const parentSql = `
         SELECT
           p.parent_id,
@@ -511,10 +515,11 @@ export async function getUserById(req, res) {
           ON psr.parent_id = p.parent_id
         LEFT JOIN public.students st
           ON st.student_id = psr.student_id
-        WHERE p.user_id = $1
+        WHERE st.student_id  = $1
       `;
+// console.log(studentData[0].student_id);
 
-      const result = await query(parentSql, [id]);
+      const result = await query(parentSql, [studentId]);
 
       if (result.rows.length > 0) {
         const first = result.rows[0];
