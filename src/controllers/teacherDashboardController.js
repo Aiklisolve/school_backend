@@ -38,21 +38,22 @@ export async function getTeacherDashboard(req, res) {
     // 2) Current assignments (class/section/year)
     const assignmentsResult = await query(
       `
-      SELECT
-        ta.section_id,
+    SELECT
+        sec.section_id,
         ta.year_id,
-        ta.is_class_teacher,
+        sec.class_teacher_id,
         sec.section_name,
         c.class_id,
         c.class_name,
         ay.year_name,
         ay.is_current
       FROM public.teacher_assignments ta
-      JOIN public.sections sec ON sec.section_id = ta.section_id
+      JOIN public.sections sec ON sec.class_id = ta.class_id
       JOIN public.classes c ON c.class_id = sec.class_id
       JOIN public.academic_years ay ON ay.year_id = ta.year_id
       WHERE ta.teacher_id = $1
       ORDER BY ay.start_date DESC, c.class_order, sec.section_name
+
       `,
       [teacherId]
     );
@@ -69,13 +70,15 @@ export async function getTeacherDashboard(req, res) {
       // Total students across all their sections
       query(
         `
-        SELECT
-          COUNT(DISTINCT se.student_id) AS total_students
-        FROM public.teacher_assignments ta
-        JOIN public.student_enrollments se
-          ON se.section_id = ta.section_id
-         AND se.year_id = ta.year_id
-        WHERE ta.teacher_id = $1
+       SELECT
+  COUNT(DISTINCT se.student_id) AS total_students
+FROM public.sections sec
+JOIN public.student_enrollments se
+  ON se.section_id = sec.section_id
+ AND se.year_id    = sec.year_id
+WHERE sec.class_teacher_id = $1   
+  AND sec.is_active = true
+  AND se.is_active  = true;
         `,
         [teacherId]
       ),
