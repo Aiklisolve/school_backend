@@ -256,65 +256,325 @@ export async function getAllUsers(req, res) {
   }
 }
 
+// export async function getUserById(req, res) {
+//   try {
+//     const { id } = req.params;
+
+//     const sql = `
+//       SELECT 
+//         u.user_id,
+//         u.school_id,
+//         u.branch_id,
+//         u.username,
+//         u.email,
+//         u.phone,
+//         u.full_name,
+//         u.role,
+//         u.gender,
+//         u.is_active,
+//         u.created_at,
+
+//         -- school related
+//         s.school_code,
+//         s.school_name,
+//         s.city      AS school_city,
+//         s.state     AS school_state,
+//         s.pincode   AS school_pincode,
+//         s.board_type,
+
+//         -- branch related
+//         b.branch_code,
+//         b.branch_name,
+//         b.city      AS branch_city,
+//         b.state     AS branch_state,
+//         b.pincode   AS branch_pincode,
+//         b.is_main_branch
+
+//       FROM public.users u
+//       JOIN public.schools s
+//         ON u.school_id = s.school_id
+//       LEFT JOIN public.branches b
+//         ON u.branch_id = b.branch_id
+//        AND b.school_id = u.school_id
+//       WHERE u.user_id = $1
+//     `;
+
+//     const { rows } = await query(sql, [id]);
+
+//     if (rows.length === 0) {
+//       return res.status(404).json({
+//         status: "error",
+//         message: "User not found",
+//       });
+//     }
+
+//     const user = rows[0];
+
+//     // -----------------------------------------------------
+//     // 🟦 IF ROLE = STUDENT → Fetch student table details
+//     // -----------------------------------------------------
+//     let studentData = null;
+
+//     if (user.role === "STUDENT") {
+//       const studentSql = `
+//         SELECT 
+//           st.student_id,
+//           st.admission_number,
+//           st.roll_number,
+//           st.full_name AS student_full_name,
+//           st.date_of_birth,
+//           st.gender,
+//           st.admission_class,
+//           st.current_status,
+//           st.student_photo_url,
+//           st.address_line1,
+//           st.city,
+//           st.state,
+//           st.pincode,
+//           st.medical_conditions,
+
+//           -- parent details
+//           psr.relationship_type,
+//           psr.is_primary_contact,
+//           p.parent_id,
+//           p.full_name AS parent_name,
+//           p.phone     AS parent_phone,
+//           p.email     AS parent_email
+
+//         FROM public.students st
+//         LEFT JOIN public.parent_student_relationships psr
+//           ON psr.student_id = st.student_id
+//         LEFT JOIN public.parents p
+//           ON p.parent_id = psr.parent_id
+//         WHERE st.user_id = $1
+//       `;
+
+//       const studentResult = await query(studentSql, [id]);
+//       studentData = studentResult.rows || [];
+//     }
+
+//     return res.status(200).json({
+//       status: "success",
+//       user,
+//       student: studentData, // may be [] if no mapping
+//     });
+
+//   } catch (err) {
+//     console.error("Error fetching user:", err);
+//     return res.status(500).json({
+//       status: "error",
+//       message: "Internal server error",
+//     });
+//   }
+// }
+
 export async function getUserById(req, res) {
   try {
     const { id } = req.params;
 
     const sql = `
-     SELECT 
-  u.user_id,
-  u.school_id,
-  u.branch_id,
-  u.username,
-  u.email,
-  u.phone,
-  u.full_name,
-  u.role,
-  u.gender,
-  u.is_active,
-  u.created_at,
+      SELECT 
+        u.user_id,
+        u.school_id,
+        u.branch_id,
+        u.username,
+        u.email,
+        u.phone,
+        u.full_name,
+        u.role,
+        u.gender,
+        u.is_active,
+        u.created_at,
 
-  -- school related
-  s.school_code,
-  s.school_name,
-  s.city      AS school_city,
-  s.state     AS school_state,
-  s.pincode   AS school_pincode,
-  s.board_type,
+        -- school related
+        s.school_code,
+        s.school_name,
+        s.city      AS school_city,
+        s.state     AS school_state,
+        s.pincode   AS school_pincode,
+        s.board_type,
 
-  -- branch related
-  b.branch_code,
-  b.branch_name,
-  b.city      AS branch_city,
-  b.state     AS branch_state,
-  b.pincode   AS branch_pincode,
-  b.is_main_branch
+        -- branch related
+        b.branch_code,
+        b.branch_name,
+        b.city      AS branch_city,
+        b.state     AS branch_state,
+        b.pincode   AS branch_pincode,
+        b.is_main_branch
 
-FROM public.users u
-JOIN public.schools s
-  ON u.school_id = s.school_id
-LEFT JOIN public.branches b
-  ON u.branch_id = b.branch_id
- AND b.school_id = u.school_id
-
-      WHERE u.user_id = $1;
+      FROM public.users u
+      JOIN public.schools s
+        ON u.school_id = s.school_id
+      LEFT JOIN public.branches b
+        ON u.branch_id = b.branch_id
+       AND b.school_id = u.school_id
+      WHERE u.user_id = $1
     `;
 
     const { rows } = await query(sql, [id]);
 
     if (rows.length === 0) {
-      return res.status(404).json({ status: "error", message: "User not found" });
+      return res
+        .status(404)
+        .json({ status: "error", message: "User not found" });
+    }
+
+    const user = rows[0];
+
+    let studentData = null;
+    let parentProfile = null;
+    let parentStudents = null;
+
+    // -----------------------------------------------------
+    // 🧑‍🎓 ROLE = STUDENT  → attach student + parent info
+    // -----------------------------------------------------
+    if (user.role === "STUDENT") {
+      const studentSql = `
+        SELECT 
+          st.student_id,
+          st.school_id,
+          st.branch_id,
+          st.admission_number,
+          st.roll_number,
+          st.full_name        AS student_full_name,
+          st.date_of_birth,
+          st.gender           AS student_gender,
+          st.admission_class,
+          st.current_status,
+          st.student_photo_url,
+          st.address_line1,
+          st.city,
+          st.state,
+          st.pincode,
+          st.medical_conditions,
+
+          psr.relationship_type,
+          psr.is_primary_contact,
+          psr.is_fee_responsible,
+          psr.is_emergency_contact,
+
+          p.parent_id,
+          p.full_name         AS parent_name,
+          p.phone             AS parent_phone,
+          p.email             AS parent_email
+
+        FROM public.students st
+        LEFT JOIN public.parent_student_relationships psr
+          ON psr.student_id = st.student_id
+        LEFT JOIN public.parents p
+          ON p.parent_id = psr.parent_id
+        WHERE st.user_id = $1
+      `;
+
+      const result = await query(studentSql, [id]);
+
+      // You can keep as array (one row per parent) or build nicer objects.
+      studentData = result.rows || [];
+    }
+
+    // -----------------------------------------------------
+    // 👨‍👩‍👧 ROLE = PARENT → attach parent profile + children
+    // -----------------------------------------------------
+    if (user.role === "PARENT") {
+      const parentSql = `
+        SELECT
+          p.parent_id,
+          p.school_id,
+          p.full_name          AS parent_full_name,
+          p.phone              AS parent_phone,
+          p.email              AS parent_email,
+          p.whatsapp_number,
+          p.occupation,
+          p.annual_income_range,
+          p.education_level,
+          p.address_line1,
+          p.address_line2,
+          p.city               AS parent_city,
+          p.state              AS parent_state,
+          p.pincode            AS parent_pincode,
+
+          psr.relationship_type,
+          psr.is_primary_contact,
+          psr.is_fee_responsible,
+          psr.is_emergency_contact,
+
+          st.student_id,
+          st.full_name         AS student_full_name,
+          st.admission_number,
+          st.roll_number,
+          st.admission_class,
+          st.current_status,
+          st.student_photo_url
+
+        FROM public.parents p
+        LEFT JOIN public.parent_student_relationships psr
+          ON psr.parent_id = p.parent_id
+        LEFT JOIN public.students st
+          ON st.student_id = psr.student_id
+        WHERE p.user_id = $1
+      `;
+
+      const result = await query(parentSql, [id]);
+
+      if (result.rows.length > 0) {
+        const first = result.rows[0];
+
+        // Parent main profile
+        parentProfile = {
+          parent_id: first.parent_id,
+          school_id: first.school_id,
+          full_name: first.parent_full_name,
+          phone: first.parent_phone,
+          email: first.parent_email,
+          whatsapp_number: first.whatsapp_number,
+          occupation: first.occupation,
+          annual_income_range: first.annual_income_range,
+          education_level: first.education_level,
+          address_line1: first.address_line1,
+          address_line2: first.address_line2,
+          city: first.parent_city,
+          state: first.parent_state,
+          pincode: first.parent_pincode,
+        };
+
+        // Linked students (one item per relationship)
+        parentStudents = result.rows
+          .filter((r) => r.student_id) // ignore rows without student
+          .map((r) => ({
+            student_id: r.student_id,
+            full_name: r.student_full_name,
+            admission_number: r.admission_number,
+            roll_number: r.roll_number,
+            admission_class: r.admission_class,
+            current_status: r.current_status,
+            student_photo_url: r.student_photo_url,
+            relationship_type: r.relationship_type,
+            is_primary_contact: r.is_primary_contact,
+            is_fee_responsible: r.is_fee_responsible,
+            is_emergency_contact: r.is_emergency_contact,
+          }));
+      } else {
+        parentProfile = null;
+        parentStudents = [];
+      }
     }
 
     return res.status(200).json({
       status: "success",
-      user: rows[0],
+      user,
+      student: studentData,          // only non-null when role = STUDENT
+      parent: parentProfile,         // only non-null when role = PARENT
+      parentStudents: parentStudents // children list for parent user
     });
   } catch (err) {
     console.error("Error fetching user:", err);
-    return res.status(500).json({ status: "error", message: "Internal server error" });
+    return res
+      .status(500)
+      .json({ status: "error", message: "Internal server error" });
   }
 }
+
+
 
 export async function updateUser(req, res) {
   try {
