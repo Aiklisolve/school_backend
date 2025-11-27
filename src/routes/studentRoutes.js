@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getStudentsBySchoolId, registerStudent, listStudents } from "../controllers/studentController.js";
+import { getStudentsBySchoolId, registerStudent, listStudents, getStudentDashboard } from "../controllers/studentController.js";
 import { authorizeRoles } from "../middleware/roleMiddleware.js";
 import { authenticate } from "../middleware/authMiddleware.js";
 
@@ -19,5 +19,7 @@ router.get('/', listStudents);
   
 // GET /api/students/school/:school_id - Get students by school ID
 router.get('/school/:school_id', getStudentsBySchoolId);
+
+router.get("/:studentId/dashboard", getStudentDashboard);
 
 export default router;

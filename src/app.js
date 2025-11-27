@@ -27,7 +27,7 @@ import unifiedSchoolSetupRoutes from "./routes/unifiedSchoolSetupRoutes.js";
 import uploadRoutes from "./routes/uploadRoute.js"; 
 import attendanceRoutes from './routes/attendanceRoutes.js';
 import migrationRoutes from "./routes/migrationRoutes.js";
-
+import teacherDashboardRoutes from "./routes/teacherDashboardRoutes.js";
 const app = express();
 
 app.use(cors());
@@ -52,6 +52,7 @@ app.use("/api/ptm", ptmRoutes);
 app.use("/api/master", masterDataRoutes);
 app.use("/api/relationships", parentStudentRelationshipRoutes);
 app.use("/api/bulk-upload", bulkUploadRoutes);
+app.use("/api/teachers", teacherDashboardRoutes);
 
 app.use('/api/report-cards', reportCardRoutes);
 app.use('/api/unified-setup', unifiedSchoolSetupRoutes);

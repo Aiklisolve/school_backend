@@ -26,7 +26,7 @@ export async function registerStudent(req, res) {
       medical_conditions,
       emergency_contact_name,
       emergency_contact_phone,
-      student_photo_url,user_id
+      student_photo_url, user_id
     } = req.body;
 
     const isYmdDate = (value) =>
@@ -461,6 +461,291 @@ export async function getStudentsBySchoolId(req, res) {
     return res.status(500).json({
       status: "error",
       message: "Internal server error",
+    });
+  }
+}
+
+export async function getStudentDashboard(req, res) {
+  const studentId = Number(req.params.studentId);
+
+  if (!studentId) {
+    return res.status(400).json({ message: "Invalid studentId" });
+  }
+
+  try {
+    // 1) Basic profile + school/branch
+    const profileResult = await query(
+      `
+      SELECT
+        s.student_id,
+        s.full_name,
+        s.admission_number,
+        s.roll_number,
+        s.gender,
+        s.date_of_birth,
+        s.admission_class,
+        s.current_status,
+        s.address_line1,
+        s.city,
+        s.state,
+        s.pincode,
+        s.student_photo_url,
+        sc.school_id,
+        sc.school_name,
+        b.branch_id,
+        b.branch_name
+      FROM public.students s
+      JOIN public.schools sc ON sc.school_id = s.school_id
+      LEFT JOIN public.branches b ON b.branch_id = s.branch_id
+      WHERE s.student_id = $1
+      `,
+      [studentId]
+    );
+
+    if (profileResult.rowCount === 0) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    const profile = profileResult.rows[0];
+
+    // 2) Current enrollment (active year/class/section)
+    const enrollmentResult = await query(
+      `
+      SELECT
+        se.section_id,
+        se.year_id,
+        se.enrollment_date,
+        se.is_active,
+        sec.section_name,
+        c.class_id,
+        c.class_name,
+        ay.year_name,
+        ay.is_current
+      FROM public.student_enrollments se
+      JOIN public.sections sec ON sec.section_id = se.section_id
+      JOIN public.classes c ON c.class_id = sec.class_id
+      JOIN public.academic_years ay ON ay.year_id = se.year_id
+      WHERE se.student_id = $1
+      ORDER BY ay.start_date DESC
+      LIMIT 1
+      `,
+      [studentId]
+    );
+
+    const currentEnrollment = enrollmentResult.rows[0] || null;
+    const currentYearId = currentEnrollment?.year_id || null;
+
+    // Fire everything else in parallel for speed
+    const [
+      attendanceSummaryResult,
+      recentAttendanceResult,
+      feeAssignmentResult,
+      recentReportCardsResult,
+      circularsResult,
+    ] = await Promise.all([
+      // 3) Attendance summary (per month) for current year
+      currentYearId
+        ? query(
+          `
+          SELECT
+            month,
+            total_school_days,
+            present_days,
+            absent_days,
+            late_days,
+            half_days,
+            attendance_percentage,
+            updated_at
+          FROM public.attendance_summary
+          WHERE student_id = $1 AND year_id = $2
+          ORDER BY month
+          `,
+          [studentId, currentYearId]
+        )
+        : { rows: [] },
+
+      // 4) Recent attendance records
+      query(
+        `
+        SELECT
+          attendance_date,
+          status,
+          check_in_time,
+          check_out_time,
+          remarks
+        FROM public.attendance
+        WHERE student_id = $1
+        ORDER BY attendance_date DESC
+        LIMIT 30
+        `,
+        [studentId]
+      ),
+
+      // 5) Fee assignment for current year (if any)
+      currentYearId
+        ? query(
+          `
+          SELECT
+            assignment_id,
+            total_fee_amount,
+            concession_amount,
+            concession_reason
+          FROM public.student_fee_assignments
+          WHERE student_id = $1 AND year_id = $2
+          `,
+          [studentId, currentYearId]
+        )
+        : { rows: [] },
+
+      // 6) Latest report cards
+      query(
+        `
+       SELECT
+  rc.report_id,
+  rc.year_id,
+  ay.year_name,
+  rc.term,
+  rc.overall_percentage,
+  rc.overall_grade,
+  rc.class_rank,
+  rc.section_rank,
+  rc.total_students,
+  rc.attendance_percentage,
+  rc.status,
+  COALESCE(
+    json_agg(
+      json_build_object(
+        'report_card_subject_id', rcs.subject_id,
+        'subject_name',           rcs.subject_name,
+        'max_marks',              rcs.max_marks,
+        'obtained_marks',         rcs.total_marks,
+        'grade',                  rcs.grade,
+        'teacher_remarks',        rcs.teacher_remarks
+      )
+      ORDER BY rcs.subject_name
+    ) FILTER (WHERE rcs.subject_id IS NOT NULL),
+    '[]'::json
+  ) AS subjects
+FROM public.report_cards rc
+JOIN public.academic_years ay
+  ON ay.year_id = rc.year_id
+LEFT JOIN public.report_card_subjects rcs
+  ON rcs.report_id = rc.report_id
+WHERE rc.student_id = $1
+GROUP BY
+  rc.report_id,
+  rc.year_id,
+  ay.year_name,
+  rc.term,
+  rc.overall_percentage,
+  rc.overall_grade,
+  rc.class_rank,
+  rc.section_rank,
+  rc.total_students,
+  rc.attendance_percentage,
+  rc.status,
+  ay.start_date
+ORDER BY ay.start_date DESC, rc.term DESC
+LIMIT 3;
+
+        `,
+        [studentId]
+      ),
+
+      // 7) Recent circulars for this student c.circ
+// ular_number,
+      query(
+        `
+        SELECT
+          c.circular_id,
+          c.title,
+          
+          c.content,
+          c.attachment_url,
+          c.target_audience,
+          c.created_at,
+          cr.status AS delivery_status,
+          cr.read_at
+        FROM public.circular_recipients cr
+        JOIN public.circulars c ON c.circular_id = cr.circular_id
+        WHERE cr.student_id = $1
+        ORDER BY c.created_at DESC
+        LIMIT 10
+        `,
+        [studentId]
+      ),
+    ]);
+
+    // 8) Fee summary + upcoming payments
+    let feeSummary = null;
+    let upcomingPayments = [];
+
+    if (feeAssignmentResult.rows.length > 0) {
+      const fa = feeAssignmentResult.rows[0];
+
+      // total paid / balance from fee_payments
+      const paymentsAggResult = await query(
+        `
+        SELECT
+          COALESCE(SUM(amount_paid + late_fee_paid), 0) AS total_paid,
+          COALESCE(SUM(balance_amount + late_fee_applicable - late_fee_paid), 0) AS total_balance
+        FROM public.fee_payments
+        WHERE fee_assignment_id = $1
+        `,
+        [fa.assignment_id]
+      );
+
+      const paymentsAgg = paymentsAggResult.rows[0];
+
+      // upcoming / pending installments
+      const upcomingResult = await query(
+        `
+        SELECT
+          payment_id,
+          installment_number,
+          amount_due,
+          amount_paid,
+          balance_amount,
+          late_fee_applicable,
+          due_date,
+          payment_date,
+          payment_mode,
+          status
+        FROM public.fee_payments
+        WHERE fee_assignment_id = $1
+          AND status <> 'PAID'
+        ORDER BY due_date
+        `,
+        [fa.assignment_id]
+      );
+
+      feeSummary = {
+        assignment_id: fa.assignment_id,
+        total_fee_amount: fa.total_fee_amount,
+        concession_amount: fa.concession_amount,
+        concession_reason: fa.concession_reason,
+        total_paid: Number(paymentsAgg.total_paid || 0),
+        total_balance: Number(paymentsAgg.total_balance || 0),
+      };
+
+      upcomingPayments = upcomingResult.rows;
+    }
+
+    return res.json({
+      profile,
+      currentEnrollment,
+      attendanceSummary: attendanceSummaryResult.rows,
+      recentAttendance: recentAttendanceResult.rows,
+      feeSummary,
+      upcomingPayments,
+      recentReportCards: recentReportCardsResult.rows,
+      recentCirculars: circularsResult.rows,
+    });
+  } catch (err) {
+    console.error("getStudentDashboard error:", err);
+    return res.status(500).json({
+      message: "Error fetching student dashboard",
+      error: err.message,
     });
   }
 }
