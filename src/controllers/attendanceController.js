@@ -7,7 +7,7 @@ class AttendanceController {
    */
   async uploadAttendanceCSV(req, res) {
     try {
-      console.log('=== Attendance CSV Upload ===');
+      // console.log('=== Attendance CSV Upload ===');
 
       if (!req.file) {
         return res.status(400).json({
@@ -16,7 +16,7 @@ class AttendanceController {
         });
       }
 
-      console.log(`File: ${req.file.originalname} (${req.file.size} bytes)`);
+      // console.log(`File: ${req.file.originalname} (${req.file.size} bytes)`);
 
       const result = await attendanceUploadService.processAttendanceCSV(req.file.path);
 
@@ -25,7 +25,7 @@ class AttendanceController {
         fs.unlinkSync(req.file.path);
       }
 
-      console.log('=== Attendance CSV Upload Completed ===');
+      // console.log('=== Attendance CSV Upload Completed ===');
 
       if (result.errors && result.errors.length > 0) {
         return res.status(207).json({
@@ -46,7 +46,7 @@ class AttendanceController {
         fs.unlinkSync(req.file.path);
       }
 
-      console.error('❌ Error in uploadAttendanceCSV:', error);
+      // console.error('❌ Error in uploadAttendanceCSV:', error);
       return res.status(500).json({
         success: false,
         message: error.message,

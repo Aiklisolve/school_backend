@@ -421,81 +421,34 @@ export async function getUserById(req, res) {
 
     const user = rows[0];
 
-    let studentData = null;
     let parentProfile = null;
-    let parentStudents = null;
+    let parentStudents = [];
+    let studentProfile = null;
+    let studentParents = [];
 
-    // -----------------------------------------------------
-    // 🧑‍🎓 ROLE = STUDENT  → attach student + parent info
-    // -----------------------------------------------------
-    if (user.role === "STUDENT") {
-      const studentSql = `
-        SELECT 
-          st.student_id,
-          st.school_id,
-          st.branch_id,
-          st.admission_number,
-          st.roll_number,
-          st.full_name        AS student_full_name,
-          st.date_of_birth,
-          st.gender           AS student_gender,
-          st.admission_class,
-          st.current_status,
-          st.student_photo_url,
-          st.address_line1,
-          st.city,
-          st.state,
-          st.pincode,
-          st.medical_conditions,
-
-          psr.relationship_type,
-          psr.is_primary_contact,
-          psr.is_fee_responsible,
-          psr.is_emergency_contact,
-
-          p.parent_id,
-          p.full_name         AS parent_name,
-          p.phone             AS parent_phone,
-          p.email             AS parent_email
-
-        FROM public.students st
-        LEFT JOIN public.parent_student_relationships psr
-          ON psr.student_id = st.student_id
-        LEFT JOIN public.parents p
-          ON p.parent_id = psr.parent_id
-        WHERE st.user_id = $1
-      `;
-
-      const result = await query(studentSql, [id]);
-
-      // You can keep as array (one row per parent) or build nicer objects.
-      studentData = result.rows || [];
-    }
-// console.log(studentData);
-
-    // -----------------------------------------------------
-    // 👨‍👩‍👧 ROLE = PARENT → attach parent profile + children
-    // -----------------------------------------------------
-    if (user.role === "PARENT" || user.role === "STUDENT" && studentData != null) {
-      const studentId = studentData != null ? studentData[0].student_id : 0;
-// console.log(studentId);
+    if (user.role === "PARENT" || user.role === "STUDENT") {
+      const whereClause =
+        user.role === "PARENT"
+          ? "WHERE p.user_id = $1"
+          : "WHERE st.user_id = $1";
 
       const parentSql = `
         SELECT
           p.parent_id,
+          p.user_id           AS parent_user_id,
           p.school_id,
-          p.full_name          AS parent_full_name,
-          p.phone              AS parent_phone,
-          p.email              AS parent_email,
+          p.full_name         AS parent_full_name,
+          p.phone             AS parent_phone,
+          p.email             AS parent_email,
           p.whatsapp_number,
           p.occupation,
           p.annual_income_range,
           p.education_level,
           p.address_line1,
           p.address_line2,
-          p.city               AS parent_city,
-          p.state              AS parent_state,
-          p.pincode            AS parent_pincode,
+          p.city              AS parent_city,
+          p.state             AS parent_state,
+          p.pincode           AS parent_pincode,
 
           psr.relationship_type,
           psr.is_primary_contact,
@@ -503,30 +456,43 @@ export async function getUserById(req, res) {
           psr.is_emergency_contact,
 
           st.student_id,
-          st.full_name         AS student_full_name,
+          st.user_id          AS student_user_id,
+          st.full_name        AS student_full_name,
           st.admission_number,
           st.roll_number,
           st.admission_class,
           st.current_status,
-          st.student_photo_url
+          st.student_photo_url,
 
+          u.username,
+          u.email             AS student_user_email,
+          u.phone             AS student_user_phone,
+          u.role              AS student_user_role,
+          u.is_active         AS student_user_is_active
         FROM public.parents p
         LEFT JOIN public.parent_student_relationships psr
           ON psr.parent_id = p.parent_id
         LEFT JOIN public.students st
           ON st.student_id = psr.student_id
-        WHERE st.student_id  = $1
+        LEFT JOIN public.users u
+          ON u.user_id = st.user_id
+        ${whereClause};
       `;
-// console.log(studentData[0].student_id);
 
-      const result = await query(parentSql, [studentId]);
+      const result = await query(parentSql, [id]);
 
-      if (result.rows.length > 0) {
+      if (result.rows.length === 0) {
+        parentProfile = null;
+        parentStudents = [];
+        studentProfile = null;
+        studentParents = [];
+      } else if (user.role === "PARENT") {
         const first = result.rows[0];
 
-        // Parent main profile
+        // Main parent profile (logged-in user)
         parentProfile = {
           parent_id: first.parent_id,
+          parent_user_id: first.parent_user_id,
           school_id: first.school_id,
           full_name: first.parent_full_name,
           phone: first.parent_phone,
@@ -539,14 +505,15 @@ export async function getUserById(req, res) {
           address_line2: first.address_line2,
           city: first.parent_city,
           state: first.parent_state,
-          pincode: first.parent_pincode,
+          pincode: first.parent_pincode, // ✅ fixed
         };
 
-        // Linked students (one item per relationship)
+        // All linked students
         parentStudents = result.rows
-          .filter((r) => r.student_id) // ignore rows without student
+          .filter((r) => r.student_id)
           .map((r) => ({
             student_id: r.student_id,
+            student_user_id: r.student_user_id,
             full_name: r.student_full_name,
             admission_number: r.admission_number,
             roll_number: r.roll_number,
@@ -557,19 +524,66 @@ export async function getUserById(req, res) {
             is_primary_contact: r.is_primary_contact,
             is_fee_responsible: r.is_fee_responsible,
             is_emergency_contact: r.is_emergency_contact,
+            // optional: login info of student user
+            student_user_email: r.student_user_email,
+            student_user_phone: r.student_user_phone,
+            student_user_role: r.student_user_role,
+            student_user_is_active: r.student_user_is_active,
           }));
-      } else {
-        parentProfile = null;
-        parentStudents = [];
+      } else if (user.role === "STUDENT") {
+        const first = result.rows[0];
+
+        // Main student profile (logged-in user)
+        studentProfile = {
+          student_id: first.student_id,
+          student_user_id: first.student_user_id,
+          school_id: first.school_id,
+          full_name: first.student_full_name,
+          admission_number: first.admission_number,
+          roll_number: first.roll_number,
+          admission_class: first.admission_class,
+          current_status: first.current_status,
+          student_photo_url: first.student_photo_url,
+          username: first.username,
+          email: first.student_user_email,
+          phone: first.student_user_phone,
+          role: first.student_user_role,
+          is_active: first.student_user_is_active,
+        };
+
+        // All linked parents for this student
+        studentParents = result.rows.map((r) => ({
+          parent_id: r.parent_id,
+          parent_user_id: r.parent_user_id,
+          full_name: r.parent_full_name,
+          phone: r.parent_phone,
+          email: r.parent_email,
+          whatsapp_number: r.whatsapp_number,
+          occupation: r.occupation,
+          annual_income_range: r.annual_income_range,
+          education_level: r.education_level,
+          address_line1: r.address_line1,
+          address_line2: r.address_line2,
+          city: r.parent_city,
+          state: r.parent_state,
+          pincode: r.parent_pincode, // ✅ fixed
+          relationship_type: r.relationship_type,
+          is_primary_contact: r.is_primary_contact,
+          is_fee_responsible: r.is_fee_responsible,
+          is_emergency_contact: r.is_emergency_contact,
+        }));
       }
     }
 
     return res.status(200).json({
       status: "success",
       user,
-      student: studentData,          // only non-null when role = STUDENT
-      parent: parentProfile,         // only non-null when role = PARENT
-      parentStudents: parentStudents // children list for parent user
+      // studentData was never defined; use studentProfile instead
+      student: studentProfile,          // non-null when role = STUDENT and has at least one parent
+      parent: parentProfile,            // non-null when role = PARENT
+      parentStudents,                   // children list for parent user
+      studentParents,                   // parents list for student user
+      studentProfile,                   // kept separately if you want both keys
     });
   } catch (err) {
     console.error("Error fetching user:", err);
@@ -578,6 +592,7 @@ export async function getUserById(req, res) {
       .json({ status: "error", message: "Internal server error" });
   }
 }
+
 
 
 
